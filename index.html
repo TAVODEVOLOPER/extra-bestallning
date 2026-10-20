@@ -30,7 +30,15 @@
   header{border-top:6px solid var(--accent);border-bottom:2px solid var(--accent);padding:14px 0 12px;margin-bottom:18px}
   h1{color:var(--accent);font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
   header p{margin:6px 0 0;color:var(--muted)}
-  .lang{display:flex;justify-content:flex-end;margin:0 0 10px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px}
+  .vtag{font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.06em;color:var(--muted)}
+  .lang{margin:0}
+  .updbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7dd;border:2px solid #d9bd55;border-radius:6px;padding:10px 12px;margin:0 0 14px}
+  .updbar span{flex:1 1 200px;font-weight:600}
+  .updbar button{min-height:42px;font-size:17px;padding:6px 16px}
+  .ver{margin-top:6px;font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted)}
+  .ver.old{color:var(--danger);font-weight:600}
+  .ver .status{margin:4px 0 0;min-height:0;font-size:13px}
   .seg{display:flex}
   .seg button{min-height:38px;padding:2px 12px;font-size:16px;border-radius:0}
   .seg button+button{border-left-width:0}
@@ -92,13 +100,23 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="lang seg" role="group" aria-label="Språk / Idioma">
-      <button type="button" data-lang="sv" aria-pressed="true">SV</button>
-      <button type="button" data-lang="es" aria-pressed="false">ES</button>
+    <div class="topbar">
+      <span class="vtag" id="vtag"></span>
+      <div class="lang seg" role="group" aria-label="Språk / Idioma">
+        <button type="button" data-lang="sv" aria-pressed="true">SV</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
+      </div>
     </div>
     <h1>Extra beställning</h1>
     <p data-i18n="sub"></p>
   </header>
+
+  <!-- aviso de versión nueva -->
+  <div class="updbar" id="updbar" hidden>
+    <span id="updText"></span>
+    <button type="button" class="primary" id="updBtn" data-i18n="updBtn"></button>
+  </div>
+  <div class="updbar" id="srvWarn" hidden><span data-i18n="srvOld"></span></div>
 
   <!-- barra de sesión (solo con sesión iniciada) -->
   <div class="toplinks" id="toplinks" hidden>
@@ -230,12 +248,21 @@
     <ul class="hist" id="ulist"></ul>
   </section>
 
-  <footer data-i18n="footer"></footer>
+  <footer>
+    <span data-i18n="footer"></span>
+    <div class="ver" id="ver">
+      <span id="verText"></span> ·
+      <button type="button" class="lnk" id="verCheck" data-i18n="verCheck"></button>
+      <p class="status" id="verMsg" role="status"></p>
+    </div>
+  </footer>
 </div>
 
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+const APP_VERSION = '1.7.0';          // sube este número en cada cambio de index.html
+const EXPECTED_SERVER = '1.7.0';     // versión de Code.gs que necesita esta app
 const FIELDS = [
   {id:'namn', type:'text', req:true, ac:'name'},
   {id:'hsa', req:true, ac:'off'},
@@ -298,7 +325,12 @@ const I18N = {
     err_BAD_PASSWORD:'Lösenordet måste ha minst 6 tecken.', err_BAD_NAME:'Ange ditt fullständiga namn.',
     err_NO_CONFIG:'Servern saknar koder (ADMIN_CODE / USER_CODE).',
     err_AUTH:'Sessionen har gått ut. Logga in igen.', err_NOT_FOUND:'Filen hittades inte.',
-    err_FORBIDDEN:'Endast administratör.'
+    err_FORBIDDEN:'Endast administratör.',
+    /* version */
+    verApp:'App', verSrv:'Server', verCheck:'Sök uppdatering', verChecking:'Kontrollerar…',
+    verOk:'Du har den senaste versionen.', updBtn:'Uppdatera',
+    updText:'Ny version tillgänglig: v', updWait:'Den nya versionen är på väg. Försök igen om några minuter.',
+    srvOld:'Servern (Apps Script) är föråldrad. Klistra in den nya Code.gs och skapa en ny version.', old:'föråldrad'
   },
   es: {
     sub:'Rellena todos los datos con claridad. ¡Gracias!',
@@ -345,7 +377,12 @@ const I18N = {
     err_BAD_PASSWORD:'La contraseña debe tener al menos 6 caracteres.', err_BAD_NAME:'Indica tu nombre completo.',
     err_NO_CONFIG:'Al servidor le faltan los códigos (ADMIN_CODE / USER_CODE).',
     err_AUTH:'La sesión caducó. Vuelve a entrar.', err_NOT_FOUND:'Archivo no encontrado.',
-    err_FORBIDDEN:'Solo el administrador.'
+    err_FORBIDDEN:'Solo el administrador.',
+    /* versión */
+    verApp:'App', verSrv:'Servidor', verCheck:'Buscar actualización', verChecking:'Comprobando…',
+    verOk:'Tienes la última versión.', updBtn:'Actualizar',
+    updText:'Hay una versión nueva: v', updWait:'La versión nueva está llegando. Inténtalo de nuevo en unos minutos.',
+    srvOld:'El servidor (Apps Script) está desactualizado: pega el nuevo Code.gs y crea una versión nueva.', old:'desactualizado'
   }
 };
 let LANG = 'sv';
@@ -365,6 +402,7 @@ function applyLang(){
   $('#sigErr').textContent = '';
   ['#status','#astatus','#hstatus','#ustatus','#dstatus'].forEach(s=>setMsg(s,''));
   updateBar();
+  renderVer();
   if(current && !$('#s2').hidden) renderSummary();
   if(!$('#s4').hidden) renderHistory();
   if(!$('#s5').hidden) renderUsers();
@@ -495,6 +533,7 @@ function showView(id){
   });
   window.scrollTo(0,0);
   if(id === 's2') setupPad();
+  if(pendingVersion && !isBusy()) applyUpdate();
 }
 
 /* ---------- formulario ---------- */
@@ -853,11 +892,81 @@ $('#save').addEventListener('click', ()=>{
   }).catch(err=>{ btn.disabled = false; setMsg('#status', errText(err), true); });
 });
 
+/* ---------- versión y actualización automática ---------- */
+let pendingVersion = '';
+let serverVersion = '';
+function currentView(){ return VIEWS.find(v=>!$('#'+v).hidden) || ''; }
+// No recargar si hay algo a medias (formulario, firma, contraseña escrita o guardando)
+function isBusy(){
+  const v = currentView();
+  if($('#save').disabled || $('#aGo').disabled) return true;
+  if(v === 's2') return true;
+  if(v === 's1') return !!($('#bestallning').value.trim() || $('#rumsnummer').value.trim() || $('#karmnummer').value.trim());
+  if(v === 'sA') return ['a_code','a_name','a_user','a_pass','a_pass2','a_admin'].some(id=>$('#'+id).value);
+  return false;
+}
+function goTo(url){ location.replace(url); }
+function renderVer(){
+  const outdated = !!serverVersion && serverVersion !== EXPECTED_SERVER;
+  $('#vtag').textContent = 'v' + APP_VERSION;
+  $('#verText').textContent = `${t('verApp')} v${APP_VERSION} · ${t('verSrv')} ${serverVersion ? 'v' + serverVersion : '—'}` + (outdated ? ` (${t('old')})` : '');
+  $('#ver').classList.toggle('old', outdated);
+  $('#srvWarn').hidden = !(outdated && isAdmin());
+  if(pendingVersion) $('#updText').textContent = t('updText') + pendingVersion;
+}
+function latestVersion(){
+  // Lee el propio index.html sin caché y extrae APP_VERSION: una sola fuente de verdad
+  const u = new URL('index.html', location.href);
+  u.search = ''; u.searchParams.set('_', Date.now());
+  return fetch(u.toString(), {cache:'no-store'}).then(r=>r.text()).then(txt=>{
+    const m = /const APP_VERSION = '(\d[^']*)'/.exec(txt);
+    return m ? m[1] : null;
+  });
+}
+function applyUpdate(){
+  if(!pendingVersion) return;
+  if(new URLSearchParams(location.search).get('v') === pendingVersion){
+    // ya se intentó con esta versión y el servidor aún entrega la anterior: no entrar en bucle
+    setMsg('#verMsg', t('updWait'), true);
+    return;
+  }
+  const u = new URL(location.href);
+  u.searchParams.set('v', pendingVersion);   // URL distinta = el navegador pide el archivo nuevo, sin borrar caché
+  goTo(u.toString());
+}
+function checkUpdate(manual){
+  if(manual) setMsg('#verMsg', t('verChecking'));
+  return latestVersion().then(v=>{
+    if(v && v !== APP_VERSION){
+      pendingVersion = v;
+      $('#updbar').hidden = false;
+      renderVer();
+      if(!isBusy()) applyUpdate();
+    }else{
+      pendingVersion = ''; $('#updbar').hidden = true;
+      if(manual) setMsg('#verMsg', t('verOk'));
+    }
+  }).catch(()=>{ if(manual) setMsg('#verMsg', t('offline'), true); });
+}
+function checkServer(){
+  if(!apiUrl()) return;
+  fetch(apiUrl()).then(r=>r.json()).then(j=>{ serverVersion = (j && j.version) || '0'; renderVer(); }).catch(()=>{});
+}
+$('#updBtn').addEventListener('click', applyUpdate);
+$('#verCheck').addEventListener('click', ()=>{ checkServer(); checkUpdate(true); });
+let lastCheck = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && Date.now() - lastCheck > 60000){ lastCheck = Date.now(); checkUpdate(false); checkServer(); }
+});
+setInterval(()=>{ lastCheck = Date.now(); checkUpdate(false); }, 5 * 60 * 1000);
+
 /* ---------- arranque ---------- */
 buildForm();
 setAuthMode('login');
 applyLang();
 if(session && session.token) enterApp(); else showView('sA');
+renderVer();
+lastCheck = Date.now(); checkUpdate(false); checkServer();
 </script>
 </body>
 </html>
