@@ -6,14 +6,14 @@
 <title>Extra beställning</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
 <style>
-  /* Layout: una columna estrecha, pensada para móvil; cabecera tipo formulario impreso, 3 pasos reales (datos > firma > listo). */
+  /* Layout: una columna estrecha, pensada para móvil; cabecera tipo formulario impreso. Vistas: acceso > datos > firma > listo, más historial y usuarios. */
   :root{
-    --paper:#e7eef5;
+    --paper:#e9eff5;
     --card:#ffffff;
-    --ink:#12161b;
+    --ink:#0a1f33;
     --muted:#566371;
     --line:#bfcad6;
-    --accent:#0a4f8f;
+    --accent:#062849; /* azul ISS (aprox. #062849, ver brandcolorcode.com/iss-a-s) */
     --accent-ink:#ffffff;
     --danger:#b3261e;
     --ok:#1b6b39;
@@ -27,14 +27,28 @@
     padding:20px 16px 48px;
   }
   .wrap{max-width:640px;margin:0 auto}
-  header{border-top:3px solid var(--ink);border-bottom:2px solid var(--ink);padding:14px 0 12px;margin-bottom:18px}
-  h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
+  header{border-top:6px solid var(--accent);border-bottom:2px solid var(--accent);padding:14px 0 12px;margin-bottom:18px}
+  h1{color:var(--accent);font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
   header p{margin:6px 0 0;color:var(--muted)}
   .lang{display:flex;justify-content:flex-end;margin:0 0 10px}
-  .lang button{min-height:36px;padding:2px 14px;font-size:16px;border-radius:0}
-  .lang button+button{border-left-width:0}
-  .lang button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+  .seg{display:flex}
+  .seg button{min-height:38px;padding:2px 12px;font-size:16px;border-radius:0}
+  .seg button+button{border-left-width:0}
+  .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .tabs{margin:0 0 16px}
+  .tabs button{flex:1;font-size:17px;padding:4px 6px;min-height:44px}
   .note{font-size:14px;color:var(--muted)}
+  .toplinks{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+  .who{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.04em;text-transform:uppercase;margin-right:auto}
+  .who small{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:.04em;background:var(--accent);color:var(--accent-ink);border-radius:3px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .folder,.lnk{color:var(--accent);font-weight:600}
+  button.lnk{border:0;background:none;padding:0;min-height:0;font-family:var(--body);font-size:16px;letter-spacing:0;text-transform:none;text-decoration:underline;cursor:pointer}
+  ul.hist{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+  ul.hist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:#f7fafc}
+  .hi{min-width:0}
+  .hi b{font-family:var(--display);font-size:21px;letter-spacing:.04em;color:var(--accent)}
+  .hi span{display:block;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+  ul.hist li button{min-height:42px;font-size:17px;padding:6px 14px;flex:none}
   .steps{display:flex;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
   .steps li{flex:1;padding:6px 0;border-bottom:3px solid var(--line);color:var(--muted)}
   .steps li.on{border-color:var(--accent);color:var(--ink)}
@@ -71,14 +85,14 @@
   .status.error{color:var(--danger)}
   .done-mark{font-family:var(--display);font-weight:700;font-size:34px;text-transform:uppercase;color:var(--ok);margin:0 0 6px}
   a.link{display:inline-block;margin:6px 0 16px;color:var(--accent);font-weight:600;overflow-wrap:anywhere}
-  footer{margin-top:22px;border-top:2px solid var(--ink);padding-top:10px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:15px;color:var(--muted)}
+  footer{margin-top:22px;border-top:2px solid var(--accent);padding-top:10px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:15px;color:var(--muted)}
   [hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="lang" role="group" aria-label="Språk / Idioma">
+    <div class="lang seg" role="group" aria-label="Språk / Idioma">
       <button type="button" data-lang="sv" aria-pressed="true">SV</button>
       <button type="button" data-lang="es" aria-pressed="false">ES</button>
     </div>
@@ -86,14 +100,64 @@
     <p data-i18n="sub"></p>
   </header>
 
-  <ol class="steps" id="steps">
+  <!-- barra de sesión (solo con sesión iniciada) -->
+  <div class="toplinks" id="toplinks" hidden>
+    <span class="who" id="who"></span>
+    <button type="button" class="lnk" id="newBtn" data-i18n="newOrder"></button>
+    <button type="button" class="lnk" id="histBtn" data-i18n="hist"></button>
+    <button type="button" class="lnk" id="usersBtn" data-i18n="usersBtn" hidden></button>
+    <a class="folder" id="folderLink" href="#" target="_blank" rel="noopener" hidden data-i18n="folder"></a>
+    <button type="button" class="lnk" id="logoutBtn" data-i18n="logout"></button>
+  </div>
+
+  <!-- ACCESO -->
+  <section id="sA" class="panel">
+    <div class="tabs seg" role="group" id="tabs">
+      <button type="button" data-mode="login" aria-pressed="true" data-i18n="tabLogin"></button>
+      <button type="button" data-mode="register" aria-pressed="false" data-i18n="tabReg"></button>
+      <button type="button" data-mode="admin" aria-pressed="false" data-i18n="tabAdmin"></button>
+    </div>
+    <form id="aForm" novalidate>
+      <p class="note" id="aHint" hidden data-i18n="hintReg"></p>
+      <div class="field" id="g_code" hidden>
+        <label for="a_code" data-i18n="fUserCode"></label>
+        <input id="a_code" type="password" autocomplete="off">
+      </div>
+      <div class="field" id="g_name" hidden>
+        <label for="a_name" data-i18n="fFullName"></label>
+        <input id="a_name" autocomplete="name" maxlength="80">
+      </div>
+      <div class="field" id="g_user">
+        <label for="a_user" data-i18n="fUser"></label>
+        <input id="a_user" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30">
+      </div>
+      <div class="field" id="g_pass">
+        <label for="a_pass" data-i18n="fPass"></label>
+        <input id="a_pass" type="password" autocomplete="current-password" maxlength="100">
+      </div>
+      <div class="field" id="g_pass2" hidden>
+        <label for="a_pass2" data-i18n="fPass2"></label>
+        <input id="a_pass2" type="password" autocomplete="new-password" maxlength="100">
+      </div>
+      <div class="field" id="g_admin" hidden>
+        <label for="a_admin" data-i18n="fAdminCode"></label>
+        <input id="a_admin" type="password" autocomplete="off">
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary" id="aGo" data-i18n="bLogin"></button>
+      </div>
+      <p class="status" id="astatus" role="status"></p>
+    </form>
+  </section>
+
+  <ol class="steps" id="steps" hidden>
     <li id="st1" class="on" data-i18n="st1"></li>
     <li id="st2" data-i18n="st2"></li>
     <li id="st3" data-i18n="st3"></li>
   </ol>
 
   <!-- PASO 1: datos -->
-  <section id="s1" class="panel">
+  <section id="s1" class="panel" hidden>
     <form id="form" novalidate></form>
     <div class="actions">
       <button type="button" class="primary" id="toSign" data-i18n="next"></button>
@@ -123,11 +187,6 @@
       <div class="field"><label for="tid" data-i18n="tid"></label><input id="tid" type="time"></div>
     </div>
 
-    <div class="field">
-      <label for="pin"><span data-i18n="pin"></span> <span class="opt" data-i18n="pinOpt"></span></label>
-      <input id="pin" type="password" autocomplete="off" inputmode="text">
-    </div>
-
     <div class="actions">
       <button type="button" id="back" data-i18n="back"></button>
       <button type="button" id="clear" data-i18n="clear"></button>
@@ -140,8 +199,35 @@
   <section id="s3" class="panel" hidden>
     <p class="done-mark" data-i18n="done"></p>
     <p data-i18n="doneMsg"></p>
-    <a class="link" id="pdfLink" href="#" target="_blank" rel="noopener" data-i18n="open"></a>
+    <div class="actions"><button type="button" id="pdfOpen" data-i18n="open"></button></div>
+    <p class="status" id="dstatus" role="status"></p>
     <div class="actions"><button type="button" class="primary" id="again" data-i18n="again"></button></div>
+  </section>
+
+  <!-- HISTORIAL: PDF guardados (cada usuario ve los suyos; el administrador, todos) -->
+  <section id="s4" class="panel" hidden>
+    <p class="note" id="scopeNote"></p>
+    <div class="field">
+      <label for="hq" data-i18n="search"></label>
+      <input id="hq" type="search" autocomplete="off">
+    </div>
+    <div class="actions">
+      <button type="button" id="hrefresh" data-i18n="refresh"></button>
+      <button type="button" class="primary" id="hback" data-i18n="again"></button>
+    </div>
+    <p class="status" id="hstatus" role="status"></p>
+    <ul class="hist" id="hlist"></ul>
+  </section>
+
+  <!-- USUARIOS (solo administrador) -->
+  <section id="s5" class="panel" hidden>
+    <p class="note" data-i18n="usersNote"></p>
+    <div class="actions">
+      <button type="button" id="urefresh" data-i18n="refresh"></button>
+      <button type="button" class="primary" id="uback" data-i18n="again"></button>
+    </div>
+    <p class="status" id="ustatus" role="status"></p>
+    <ul class="hist" id="ulist"></ul>
   </section>
 
   <footer data-i18n="footer"></footer>
@@ -151,22 +237,23 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const FIELDS = [
-  {id:'namn', label:'NAMN', req:true, ac:'name'},
-  {id:'hsa', label:'HSA-ID', req:true, ac:'off'},
-  {id:'telefon', label:'TELEFON', type:'tel', req:true, ac:'tel'},
-  {id:'epost', label:'E-POST', type:'email', req:true, ac:'email'},
-  {id:'avdelning', label:'AVDELNING', req:true, ac:'off'},
-  {id:'kostnadsstalle', label:'KOSTNADSSTÄLLE', req:false, ac:'off'},
-  {id:'rumsnummer', label:'RUMSNUMMER', req:true, ac:'off'},
-  {id:'karmnummer', label:'KARMNUMMER', req:false, ac:'off'}
+  {id:'namn', type:'text', req:true, ac:'name'},
+  {id:'hsa', req:true, ac:'off'},
+  {id:'telefon', type:'tel', req:true, ac:'tel'},
+  {id:'epost', type:'email', req:true, ac:'email'},
+  {id:'avdelning', req:true, ac:'off'},
+  {id:'kostnadsstalle', req:false, ac:'off'},
+  {id:'rumsnummer', req:true, ac:'off'},
+  {id:'karmnummer', req:false, ac:'off'}
 ];
 const REMEMBER = ['namn','hsa','telefon','epost','avdelning','kostnadsstalle'];
 const STORE_KEY = 'extra-bestallning-v1';
-const PIN_KEY = 'extra-bestallning-pin';
+const SESSION_KEY = 'extra-bestallning-session';
+const FOLDER_KEY = 'extra-bestallning-folder';
+const LANG_KEY = 'extra-bestallning-lang';
 const $ = s => document.querySelector(s);
 
 /* ---------- idioma de la interfaz (el PDF siempre sale en sueco) ---------- */
-const LANG_KEY = 'extra-bestallning-lang';
 const I18N = {
   sv: {
     sub:'Vänligen fyll i alla uppgifter tydligt. Tack!',
@@ -179,18 +266,39 @@ const I18N = {
     sig:'Underskrift', sigHint:'Skriv under här', sigAria:'Fält för underskrift',
     ansv:'Underskriven av', ansvOpt:'(läsbart namn, valfritt)',
     datum:'Datum', tid:'Tid',
-    pin:'Åtkomstkod', pinOpt:'(sparas på den här enheten)',
     back:'Tillbaka', clear:'Rensa', save:'Spara PDF',
     done:'Sparad', doneMsg:'PDF:en sparades i Drive och beställningen registrerades i Google Sheets.',
-    open:'Öppna PDF', again:'Ny beställning',
+    open:'Öppna PDF', folder:'Öppna PDF-mappen i Drive', again:'Ny beställning',
+    hist:'Sparade PDF', search:'Sök på namn, rum eller datum', refresh:'Uppdatera',
+    loading:'Hämtar…', empty:'Inga sparade beställningar.', hErr:'Kunde inte hämta: ',
+    popup:'Tryck här för att öppna PDF:en', openBtn:'Öppna',
     footer:'Tack för att du bidrar till en ren och trivsam miljö!',
     eReq:'Fyll i det här fältet.', eMail:'Ogiltig e-postadress.', eOrder:'Beskriv beställningen.',
     eSig:'Underskrift från ansvarig saknas.', eDT:'Fyll i datum och tid.',
     eLib:'PDF-biblioteket laddades inte. Kontrollera anslutningen och ladda om sidan.',
-    eUrl:'URL till Apps Script saknas i config.js.', ePin:'Ange åtkomstkod.',
+    eUrl:'URL till Apps Script saknas i config.js.',
     mkPdf:'Skapar PDF…', ePdf:'Kunde inte skapa PDF: ', saving:'Sparar i Drive och Sheets…',
     notSaved:'Sparades inte: ', unknown:'okänt fel',
-    offline:'Ingen kontakt med servern. Kontrollera internet och försök igen.'
+    offline:'Ingen kontakt med servern. Kontrollera internet och försök igen.',
+    /* konton */
+    tabLogin:'Logga in', tabReg:'Skapa användare', tabAdmin:'Administratör',
+    fUserCode:'Registreringskod', fFullName:'Fullständigt namn', fUser:'Användarnamn', fPass:'Lösenord',
+    fPass2:'Upprepa lösenord', fAdminCode:'Administratörskod',
+    bLogin:'Logga in', bReg:'Skapa användare', bAdmin:'Logga in som administratör',
+    hintReg:'Du får registreringskoden av administratören. Lösenordet ska ha minst 6 tecken.',
+    hello:'Hej, ', adminTag:'administratör', logout:'Logga ut', newOrder:'Ny beställning', usersBtn:'Användare',
+    scopeUser:'Här ser du bara dina egna PDF.', scopeAdmin:'Administratör: du ser alla användares PDF.',
+    usersNote:'Ta bort en användare om personen glömt sitt lösenord. Då kan hen skapa användaren på nytt. Tidigare PDF finns kvar och hör till användarnamnet.',
+    deleteBtn:'Ta bort', confirmBtn:'Bekräfta', created:'skapad', noUsers:'Inga användare.',
+    eFill:'Fyll i alla fält.', eMatch:'Lösenorden matchar inte.', welcome:'',
+    err_BAD_REG_CODE:'Fel registreringskod.', err_BAD_LOGIN:'Fel användarnamn eller lösenord.',
+    err_BAD_ADMIN:'Fel administratörskod.', err_THROTTLED:'För många försök. Vänta 10 minuter.',
+    err_USER_EXISTS:'Användarnamnet är upptaget.',
+    err_BAD_USERNAME:'Användarnamn: 3–30 tecken (a–z, 0–9, punkt, bindestreck, understreck).',
+    err_BAD_PASSWORD:'Lösenordet måste ha minst 6 tecken.', err_BAD_NAME:'Ange ditt fullständiga namn.',
+    err_NO_CONFIG:'Servern saknar koder (ADMIN_CODE / USER_CODE).',
+    err_AUTH:'Sessionen har gått ut. Logga in igen.', err_NOT_FOUND:'Filen hittades inte.',
+    err_FORBIDDEN:'Endast administratör.'
   },
   es: {
     sub:'Rellena todos los datos con claridad. ¡Gracias!',
@@ -205,18 +313,39 @@ const I18N = {
     sig:'Firma (Underskrift)', sigHint:'Firma aquí', sigAria:'Campo de firma',
     ansv:'Firmado por', ansvOpt:'(nombre legible, opcional)',
     datum:'Fecha (Datum)', tid:'Hora (Tid)',
-    pin:'Código de acceso', pinOpt:'(se recuerda en este dispositivo)',
     back:'Atrás', clear:'Borrar', save:'Guardar PDF',
     done:'Guardado', doneMsg:'El PDF se guardó en Drive y el pedido quedó registrado en Google Sheets. El PDF está en sueco.',
-    open:'Abrir PDF', again:'Nuevo pedido',
+    open:'Abrir PDF', folder:'Abrir carpeta de PDFs en Drive', again:'Nuevo pedido',
+    hist:'PDF guardados', search:'Buscar por nombre, habitación o fecha', refresh:'Actualizar',
+    loading:'Cargando…', empty:'No hay pedidos guardados.', hErr:'No se pudo cargar: ',
+    popup:'Toca aquí para abrir el PDF', openBtn:'Abrir',
     footer:'Tack för att du bidrar till en ren och trivsam miljö!',
     eReq:'Completa este campo.', eMail:'Correo no válido.', eOrder:'Describe el pedido.',
     eSig:'Falta la firma del responsable.', eDT:'Completa fecha y hora.',
     eLib:'No se cargó la librería de PDF. Revisa la conexión y recarga la página.',
-    eUrl:'Falta la URL de Apps Script en config.js.', ePin:'Escribe el código de acceso.',
+    eUrl:'Falta la URL de Apps Script en config.js.',
     mkPdf:'Generando PDF…', ePdf:'No se pudo generar el PDF: ', saving:'Guardando en Drive y Sheets…',
     notSaved:'No se guardó: ', unknown:'error desconocido',
-    offline:'Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.'
+    offline:'Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.',
+    /* cuentas */
+    tabLogin:'Entrar', tabReg:'Crear usuario', tabAdmin:'Administrador',
+    fUserCode:'Código de usuarios', fFullName:'Nombre completo', fUser:'Usuario', fPass:'Contraseña',
+    fPass2:'Repetir contraseña', fAdminCode:'Código de administrador',
+    bLogin:'Entrar', bReg:'Crear usuario', bAdmin:'Entrar como administrador',
+    hintReg:'El administrador te da el código de usuarios. La contraseña debe tener 6 caracteres como mínimo.',
+    hello:'Hola, ', adminTag:'administrador', logout:'Salir', newOrder:'Nuevo pedido', usersBtn:'Usuarios',
+    scopeUser:'Aquí solo ves tus propios PDF.', scopeAdmin:'Administrador: ves los PDF de todos los usuarios.',
+    usersNote:'Elimina un usuario si olvidó su contraseña: así podrá crearse el usuario de nuevo. Sus PDF anteriores se conservan y siguen asociados a su nombre de usuario.',
+    deleteBtn:'Eliminar', confirmBtn:'Confirmar', created:'creado', noUsers:'No hay usuarios.',
+    eFill:'Completa todos los campos.', eMatch:'Las contraseñas no coinciden.', welcome:'',
+    err_BAD_REG_CODE:'Código de usuarios incorrecto.', err_BAD_LOGIN:'Usuario o contraseña incorrectos.',
+    err_BAD_ADMIN:'Código de administrador incorrecto.', err_THROTTLED:'Demasiados intentos. Espera 10 minutos.',
+    err_USER_EXISTS:'Ese usuario ya existe.',
+    err_BAD_USERNAME:'Usuario: 3 a 30 caracteres (a–z, 0–9, punto, guion, guion bajo).',
+    err_BAD_PASSWORD:'La contraseña debe tener al menos 6 caracteres.', err_BAD_NAME:'Indica tu nombre completo.',
+    err_NO_CONFIG:'Al servidor le faltan los códigos (ADMIN_CODE / USER_CODE).',
+    err_AUTH:'La sesión caducó. Vuelve a entrar.', err_NOT_FOUND:'Archivo no encontrado.',
+    err_FORBIDDEN:'Solo el administrador.'
   }
 };
 let LANG = 'sv';
@@ -234,8 +363,11 @@ function applyLang(){
   document.querySelectorAll('.field.bad').forEach(e=>e.classList.remove('bad'));
   document.querySelectorAll('.field .err').forEach(e=>{ e.textContent = ''; });
   $('#sigErr').textContent = '';
-  setStatus('');
+  ['#status','#astatus','#hstatus','#ustatus','#dstatus'].forEach(s=>setMsg(s,''));
+  updateBar();
   if(current && !$('#s2').hidden) renderSummary();
+  if(!$('#s4').hidden) renderHistory();
+  if(!$('#s5').hidden) renderUsers();
 }
 document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click', ()=>{
   LANG = b.dataset.lang;
@@ -243,7 +375,130 @@ document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',
   applyLang();
 }));
 
+/* ---------- sesión y llamadas al servidor ---------- */
+let session = null;      // {token, user, name, role}
+try{ session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){}
+function apiUrl(){
+  const u = (window.CONFIG && window.CONFIG.APPS_SCRIPT_URL) || '';
+  return /^https:\/\/script\.google\.com\//.test(u) ? u : '';
+}
+function api(payload){
+  const body = Object.assign({}, payload);
+  if(session && !['login','register','admin'].includes(body.action)) body.token = session.token;
+  return fetch(apiUrl(), {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},   // evita el preflight CORS
+    body: JSON.stringify(body)
+  }).then(r => r.json()).then(res=>{
+    if(res && res.auth && session){ logout(); setMsg('#astatus', t('err_AUTH'), true); }
+    return res;
+  });
+}
+function errText(x){
+  if(x && x.ok === false) return (x.code && t('err_' + x.code)) || x.error || t('unknown');
+  return t('offline');
+}
+function setMsg(sel, msg, isErr){
+  const s = $(sel); if(!s) return;
+  s.textContent = msg; s.className = 'status' + (isErr ? ' error' : '');
+}
+
+/* ---------- pantalla de acceso ---------- */
+let authMode = 'login';
+function setAuthMode(m){
+  authMode = m;
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  const show = {
+    g_code: m==='register', g_name: m==='register', g_user: m!=='admin',
+    g_pass: m!=='admin', g_pass2: m==='register', g_admin: m==='admin', aHint: m==='register'
+  };
+  Object.keys(show).forEach(id=>{ $('#'+id).hidden = !show[id]; });
+  $('#a_pass').autocomplete = m==='register' ? 'new-password' : 'current-password';
+  const key = {login:'bLogin', register:'bReg', admin:'bAdmin'}[m];
+  $('#aGo').dataset.i18n = key; $('#aGo').textContent = t(key);
+  setMsg('#astatus','');
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click', ()=>setAuthMode(b.dataset.mode)));
+$('#aForm').addEventListener('submit', e=>{ e.preventDefault(); doAuth(); });
+function doAuth(){
+  if(!apiUrl()){ setMsg('#astatus', t('eUrl'), true); return; }
+  const user = $('#a_user').value.trim(), pass = $('#a_pass').value;
+  let payload;
+  if(authMode === 'login'){
+    if(!user || !pass){ setMsg('#astatus', t('eFill'), true); return; }
+    payload = {action:'login', user, pass};
+  }else if(authMode === 'register'){
+    const code = $('#a_code').value, name = $('#a_name').value.trim(), pass2 = $('#a_pass2').value;
+    if(!code || !name || !user || !pass || !pass2){ setMsg('#astatus', t('eFill'), true); return; }
+    if(pass !== pass2){ setMsg('#astatus', t('eMatch'), true); return; }
+    payload = {action:'register', code, name, user, pass};
+  }else{
+    const code = $('#a_admin').value;
+    if(!code){ setMsg('#astatus', t('eFill'), true); return; }
+    payload = {action:'admin', code};
+  }
+  const btn = $('#aGo'); btn.disabled = true;
+  setMsg('#astatus', t('loading'));
+  api(payload).then(res=>{
+    btn.disabled = false;
+    if(!res.ok){ setMsg('#astatus', errText(res), true); return; }
+    session = {token:res.token, user:res.user, name:res.name, role:res.role};
+    try{ localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }catch(e){}
+    ['a_code','a_name','a_user','a_pass','a_pass2','a_admin'].forEach(id=>{ $('#'+id).value = ''; });
+    setMsg('#astatus','');
+    enterApp();
+  }).catch(err=>{ btn.disabled = false; setMsg('#astatus', errText(err), true); });
+}
+function logout(){
+  session = null; current = null; hist = []; usersData = []; lastSavedId = '';
+  try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+  document.querySelectorAll('#form input, #form textarea').forEach(el=>{ el.value = ''; });
+  $('#ansvarig').value = ''; $('#hq').value = '';
+  $('#hlist').innerHTML = ''; $('#ulist').innerHTML = '';
+  updateBar();
+  showView('sA');
+}
+$('#logoutBtn').addEventListener('click', ()=>{ logout(); });
+
+function isAdmin(){ return !!session && session.role === 'admin'; }
+function updateBar(){
+  $('#toplinks').hidden = !session;
+  if(!session) return;
+  $('#who').innerHTML = esc(t('hello') + session.name) + (isAdmin() ? `<small>${esc(t('adminTag'))}</small>` : '');
+  $('#usersBtn').hidden = !isAdmin();
+  showFolderLinks();
+}
+function folderUrl(){
+  if(!isAdmin()) return '';
+  try{ return (window.CONFIG && window.CONFIG.FOLDER_URL) || localStorage.getItem(FOLDER_KEY) || ''; }catch(e){ return (window.CONFIG && window.CONFIG.FOLDER_URL) || ''; }
+}
+function showFolderLinks(){
+  const u = folderUrl(), a = $('#folderLink');
+  a.hidden = !u; if(u) a.href = u;
+}
+function enterApp(){
+  updateBar();
+  loadRemembered();
+  showView('s1');
+}
+
+/* ---------- vistas ---------- */
+const VIEWS = ['sA','s1','s2','s3','s4','s5'];
+function showView(id){
+  VIEWS.forEach(v=>{ $('#'+v).hidden = v !== id; });
+  const n = {s1:1, s2:2, s3:3}[id] || 0;
+  $('#steps').hidden = !n;
+  ['st1','st2','st3'].forEach((sid,i)=>{
+    const el = $('#'+sid);
+    el.classList.toggle('on', i+1 === n);
+    el.classList.toggle('done', !!n && i+1 < n);
+  });
+  window.scrollTo(0,0);
+  if(id === 's2') setupPad();
+}
+
 /* ---------- formulario ---------- */
+function storeKey(){ return STORE_KEY + ':' + (session ? session.user : ''); }
 function buildForm(){
   const f = $('#form');
   let html = '';
@@ -260,10 +515,14 @@ function buildForm(){
       <div class="err"></div></div>`;
   f.innerHTML = html;
   f.addEventListener('submit', e=>e.preventDefault());
+}
+// Recuerda tus datos habituales, separados por usuario (en un móvil compartido no se mezclan)
+function loadRemembered(){
   try{
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY)||'{}');
-    REMEMBER.forEach(k=>{ if(saved[k]) $('#'+k).value = saved[k]; });
+    const saved = JSON.parse(localStorage.getItem(storeKey()) || '{}');
+    REMEMBER.forEach(k=>{ if(saved[k] && !$('#'+k).value) $('#'+k).value = saved[k]; });
   }catch(e){}
+  if(session && session.role === 'user' && !$('#namn').value) $('#namn').value = session.name;
 }
 function collect(){
   const d = {};
@@ -290,26 +549,15 @@ function validate(d){
   if(first){ $('#'+first).focus(); return false; }
   return true;
 }
-
-/* ---------- pasos ---------- */
-function showStep(n){
-  ['s1','s2','s3'].forEach((id,i)=>{ $('#'+id).hidden = (i+1)!==n; });
-  ['st1','st2','st3'].forEach((id,i)=>{
-    const el = $('#'+id);
-    el.classList.toggle('on', i+1===n);
-    el.classList.toggle('done', i+1<n);
-  });
-  window.scrollTo(0,0);
-  if(n===2) setupPad();
-}
 function pad2(n){ return String(n).padStart(2,'0'); }
 function nowParts(){
   const d = new Date();
   return {date:`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`, time:`${pad2(d.getHours())}:${pad2(d.getMinutes())}`};
 }
-function esc(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 let current = null;
+let lastSavedId = '';
 function renderSummary(){
   const rows = FIELDS.map(x=>[t('f_'+x.id), current[x.id]]).concat([[t('f_bestallning'), current.bestallning]]).filter(r=>r[1]);
   $('#sum').innerHTML = rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
@@ -320,20 +568,24 @@ $('#toSign').addEventListener('click', ()=>{
   current = d;
   try{
     const keep = {}; REMEMBER.forEach(k=>keep[k]=d[k]);
-    localStorage.setItem(STORE_KEY, JSON.stringify(keep));
+    localStorage.setItem(storeKey(), JSON.stringify(keep));
   }catch(e){}
   renderSummary();
-  const t = nowParts();
-  $('#datum').value = t.date; $('#tid').value = t.time;
-  $('#status').textContent = ''; $('#status').className = 'status';
-  showStep(2);
+  const tp = nowParts();
+  $('#datum').value = tp.date; $('#tid').value = tp.time;
+  setMsg('#status','');
+  showView('s2');
 });
-$('#back').addEventListener('click', ()=>showStep(1));
-$('#again').addEventListener('click', ()=>{
+$('#back').addEventListener('click', ()=>showView('s1'));
+function newOrder(){
   $('#bestallning').value = ''; $('#karmnummer').value = ''; $('#rumsnummer').value = '';
   $('#ansvarig').value = '';
-  showStep(1);
-});
+  showView('s1');
+}
+$('#again').addEventListener('click', newOrder);
+$('#newBtn').addEventListener('click', newOrder);
+$('#hback').addEventListener('click', newOrder);
+$('#uback').addEventListener('click', newOrder);
 
 /* ---------- firma ---------- */
 const pad = {ctx:null, drawing:false, ink:false, dpr:1, b:null};
@@ -402,20 +654,26 @@ function buildPdf(d, sig){
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'mm', format:'a4'});
   const L = 18, R = 192, X = 72;
+  const NAVY = [6, 40, 73];                       // azul ISS (aprox.)
+  const navy = ()=>{ doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]); doc.setDrawColor(NAVY[0],NAVY[1],NAVY[2]); };
+  const black = ()=>doc.setTextColor(0,0,0);
+  const grey = ()=>doc.setDrawColor(130,142,155);
 
+  navy(); doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
+  doc.rect(0, 0, 210, 6, 'F');                    // franja superior
   doc.setFont('helvetica','bold'); doc.setFontSize(26);
   doc.text('EXTRA BESTÄLLNING', L, 26);
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(70,82,95);
   doc.text('Vänligen fyll i alla uppgifter tydligt. Tack!', L, 33);
-  doc.setLineWidth(0.6); doc.line(L, 38, R, 38);
+  navy(); doc.setLineWidth(0.6); doc.line(L, 38, R, 38);
 
   let y = 50;
   const line = (label, value)=>{
-    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    navy(); doc.setFont('helvetica','bold'); doc.setFontSize(10);
     doc.text(label, L, y);
-    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    black(); doc.setFont('helvetica','normal'); doc.setFontSize(11);
     if(value) doc.text(String(value), X, y - 0.8, {maxWidth: R - X});
-    doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
+    grey(); doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
     y += 11;
   };
   line('NAMN:', d.namn);
@@ -428,91 +686,178 @@ function buildPdf(d, sig){
   line('KARMNUMMER:', d.karmnummer);
 
   // Beställning: caja que crece con el texto
-  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  navy(); doc.setFont('helvetica','bold'); doc.setFontSize(10);
   doc.text('BESTÄLLNING:', L, y + 2);
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  black(); doc.setFont('helvetica','normal'); doc.setFontSize(11);
   const lines = doc.splitTextToSize(d.bestallning, R - X - 6);
   const boxH = Math.max(34, lines.length * 5.2 + 8);
-  doc.setLineWidth(0.3); doc.rect(X - 2, y - 4, R - X + 2, boxH);
-  doc.text(lines, X + 1, y + 2);
+  navy(); doc.setLineWidth(0.3); doc.rect(X - 2, y - 4, R - X + 2, boxH);
+  black(); doc.text(lines, X + 1, y + 2);
   y += boxH + 10;
 
   // Underskrift
-  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  navy(); doc.setFont('helvetica','bold'); doc.setFontSize(10);
   doc.text('UNDERSKRIFT:', L, y);
   const maxW = 70, maxH = 22;
   const k = Math.min(maxW / sig.w, maxH / sig.h);
   const sw = sig.w * k, sh = sig.h * k;
   doc.addImage(sig.url, 'PNG', X, y + 1.4 - sh, sw, sh);
-  doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
+  grey(); doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
   if(d.ansvarig){
-    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    black(); doc.setFont('helvetica','normal'); doc.setFontSize(9);
     doc.text(d.ansvarig, X, y + 6);
   }
   y += 13;
   line('DATUM:', d.datum);
   line('TID:', d.tid);
 
-  doc.setLineWidth(0.6); doc.line(L, 270, R, 270);
+  navy(); doc.setLineWidth(0.6); doc.line(L, 270, R, 270);
   doc.setFont('helvetica','bold'); doc.setFontSize(9);
   doc.text('TACK FÖR ATT DU BIDRAR TILL EN REN OCH TRIVSAM MILJÖ!', L, 277);
   return doc;
 }
 
-/* ---------- guardar ---------- */
-function setStatus(msg, isErr){
-  const s = $('#status'); s.textContent = msg; s.className = 'status' + (isErr ? ' error' : '');
+/* ---------- nombre de archivo: iniciales + fecha ---------- */
+function initials(name){
+  const ini = String(name||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .split(/[\s\-]+/).filter(w=>!/^(de|del|la|las|los|y|van|von|af|da|di)$/i.test(w)).map(w=>w.replace(/[^A-Za-z]/g,'').charAt(0)).join('').toUpperCase();
+  return (ini || 'XX').slice(0,4);
 }
+function fileNameFor(d){
+  return `${initials(d.namn)}_${d.datum}_${d.tid.replace(':','')}.pdf`;   // ej. JCP_2026-10-20_2115.pdf
+}
+
+/* ---------- abrir PDF guardados ---------- */
+// Pide el PDF al servidor y lo muestra en una pestaña nueva
+function openPdf(fileId, btn, statusSel){
+  if(!apiUrl()){ setMsg(statusSel, t('eUrl'), true); return; }
+  const w = window.open('', '_blank');           // se abre ya, durante el toque, para que no lo bloqueen
+  if(btn) btn.disabled = true;
+  setMsg(statusSel, t('loading'));
+  api({action:'pdf', id:fileId}).then(res=>{
+    if(btn) btn.disabled = false;
+    if(!res.ok) throw res;
+    const bytes = Uint8Array.from(atob(res.pdfBase64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    if(w){ w.location.href = url; setMsg(statusSel, ''); }
+    else{
+      const s = $(statusSel); s.className = 'status'; s.textContent = '';
+      const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = t('popup');
+      s.appendChild(a);
+    }
+  }).catch(err=>{
+    if(w) w.close();
+    if(btn) btn.disabled = false;
+    setMsg(statusSel, t('hErr') + errText(err), true);
+  });
+}
+$('#pdfOpen').addEventListener('click', e=>openPdf(lastSavedId, e.currentTarget, '#dstatus'));
+
+/* ---------- historial ---------- */
+let hist = [];
+function histLabel(it){ return `${initials(it.namn)} · ${it.datum} ${it.tid}`.trim(); }
+function renderHistory(){
+  $('#scopeNote').textContent = t(isAdmin() ? 'scopeAdmin' : 'scopeUser');
+  const q = $('#hq').value.trim().toLowerCase();
+  const rows = hist.filter(it => !q || [it.namn, it.rum, it.avd, it.datum, it.tid, it.best, it.usr, initials(it.namn)].join(' ').toLowerCase().includes(q));
+  const ul = $('#hlist');
+  if(!rows.length){ ul.innerHTML = hist.length || !$('#hstatus').textContent ? `<li><span class="note">${esc(t('empty'))}</span></li>` : ''; return; }
+  ul.innerHTML = rows.map(it=>`<li>
+    <div class="hi"><b>${esc(histLabel(it))}</b>
+      <span>${esc(it.namn)} · ${esc(it.rum)}${it.avd ? ' · ' + esc(it.avd) : ''}${it.usr ? ' · @' + esc(it.usr) : ''}</span></div>
+    <button type="button" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button></li>`).join('');
+}
+function loadHistory(){
+  if(!apiUrl()){ setMsg('#hstatus', t('eUrl'), true); return; }
+  setMsg('#hstatus', t('loading')); $('#hlist').innerHTML = '';
+  api({action:'list'}).then(res=>{
+    if(!res.ok) throw res;
+    hist = res.items || [];
+    setMsg('#hstatus', '');
+    renderHistory();
+  }).catch(err=>{ setMsg('#hstatus', t('hErr') + errText(err), true); });
+}
+$('#histBtn').addEventListener('click', ()=>{ showView('s4'); renderHistory(); loadHistory(); });
+$('#hrefresh').addEventListener('click', loadHistory);
+$('#hq').addEventListener('input', renderHistory);
+$('#hlist').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-id]');
+  if(b) openPdf(b.dataset.id, b, '#hstatus');
+});
+
+/* ---------- usuarios (administrador) ---------- */
+let usersData = [];
+function renderUsers(){
+  const ul = $('#ulist');
+  if(!usersData.length){ ul.innerHTML = $('#ustatus').textContent ? '' : `<li><span class="note">${esc(t('noUsers'))}</span></li>`; return; }
+  ul.innerHTML = usersData.map(u=>`<li>
+    <div class="hi"><b>@${esc(u.user)}</b><span>${esc(u.name)} · ${esc(t('created'))} ${esc(u.created)}</span></div>
+    <button type="button" data-u="${esc(u.user)}">${esc(t('deleteBtn'))}</button></li>`).join('');
+}
+function loadUsers(){
+  setMsg('#ustatus', t('loading')); $('#ulist').innerHTML = '';
+  api({action:'users'}).then(res=>{
+    if(!res.ok) throw res;
+    usersData = res.items || [];
+    setMsg('#ustatus','');
+    renderUsers();
+  }).catch(err=>{ setMsg('#ustatus', t('hErr') + errText(err), true); });
+}
+$('#usersBtn').addEventListener('click', ()=>{ showView('s5'); loadUsers(); });
+$('#urefresh').addEventListener('click', loadUsers);
+$('#ulist').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-u]');
+  if(!b) return;
+  if(!b.dataset.armed){          // primer toque: pide confirmación en el propio botón
+    b.dataset.armed = '1'; b.textContent = t('confirmBtn');
+    setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent = t('deleteBtn'); } }, 4000);
+    return;
+  }
+  b.disabled = true;
+  api({action:'deluser', user:b.dataset.u}).then(res=>{
+    if(!res.ok) throw res;
+    loadUsers();
+  }).catch(err=>{ b.disabled = false; setMsg('#ustatus', t('hErr') + errText(err), true); });
+});
+
+/* ---------- guardar pedido ---------- */
 $('#save').addEventListener('click', ()=>{
   if(!pad.ink){ $('#sigErr').textContent = t('eSig'); return; }
-  if(!$('#datum').value || !$('#tid').value){ setStatus(t('eDT'), true); return; }
-  if(!window.jspdf){ setStatus(t('eLib'), true); return; }
-  const url = (window.CONFIG && window.CONFIG.APPS_SCRIPT_URL) || '';
-  if(!/^https:\/\/script\.google\.com\//.test(url)){
-    setStatus(t('eUrl'), true); return;
-  }
-  const pin = $('#pin').value.trim();
-  if(!pin){ setStatus(t('ePin'), true); return; }
+  if(!$('#datum').value || !$('#tid').value){ setMsg('#status', t('eDT'), true); return; }
+  if(!window.jspdf){ setMsg('#status', t('eLib'), true); return; }
+  if(!apiUrl()){ setMsg('#status', t('eUrl'), true); return; }
   const d = Object.assign({}, current, {
     ansvarig: $('#ansvarig').value.trim(),
     datum: $('#datum').value,
     tid: $('#tid').value
   });
   const btn = $('#save'); btn.disabled = true;
-  setStatus(t('mkPdf'));
+  setMsg('#status', t('mkPdf'));
   let payload;
   try{
     const doc = buildPdf(d, signatureImage());
     const b64 = doc.output('datauristring').split(',')[1];
-    const safeRoom = (d.rumsnummer || 'rum').replace(/[^\w.-]+/g,'_');
-    const name = `Extra_bestallning_${d.datum}_${d.tid.replace(':','')}_${safeRoom}.pdf`;
-    payload = {pin:pin, fields:d, fileName:name, pdfBase64:b64};
+    payload = {fields:d, fileName:fileNameFor(d), pdfBase64:b64};
   }catch(err){
-    btn.disabled = false; setStatus(t('ePdf') + err.message, true); return;
+    btn.disabled = false; setMsg('#status', t('ePdf') + err.message, true); return;
   }
-  setStatus(t('saving'));
-  fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type': 'text/plain;charset=utf-8'}, // evita el preflight CORS
-    body: JSON.stringify(payload)
-  })
-    .then(r => r.json())
-    .then(res => {
-      btn.disabled = false;
-      if(!res.ok){ setStatus(t('notSaved') + (res.error || t('unknown')), true); return; }
-      try{ localStorage.setItem(PIN_KEY, pin); }catch(e){}
-      $('#pdfLink').href = res.url;
-      showStep(3);
-    })
-    .catch(err => {
-      btn.disabled = false;
-      setStatus(t('offline'), true);
-    });
+  setMsg('#status', t('saving'));
+  api(payload).then(res=>{
+    btn.disabled = false;
+    if(!res.ok){ setMsg('#status', t('notSaved') + errText(res), true); return; }
+    lastSavedId = res.fileId || '';
+    try{ if(res.folder) localStorage.setItem(FOLDER_KEY, res.folder); }catch(e){}
+    showFolderLinks();
+    setMsg('#dstatus','');
+    showView('s3');
+  }).catch(err=>{ btn.disabled = false; setMsg('#status', errText(err), true); });
 });
 
+/* ---------- arranque ---------- */
 buildForm();
-try{ $('#pin').value = localStorage.getItem(PIN_KEY) || ''; }catch(e){}
+setAuthMode('login');
 applyLang();
+if(session && session.token) enterApp(); else showView('sA');
 </script>
 </body>
 </html>
