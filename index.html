@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extra beställning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+  /* Layout: una columna estrecha, pensada para móvil; cabecera tipo formulario impreso, 3 pasos reales (datos > firma > listo). */
+  :root{
+    --paper:#e7eef5;
+    --card:#ffffff;
+    --ink:#12161b;
+    --muted:#566371;
+    --line:#bfcad6;
+    --accent:#0a4f8f;
+    --accent-ink:#ffffff;
+    --danger:#b3261e;
+    --ok:#1b6b39;
+    --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+    --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+    padding:20px 16px 48px;
+  }
+  .wrap{max-width:640px;margin:0 auto}
+  header{border-top:3px solid var(--ink);border-bottom:2px solid var(--ink);padding:14px 0 12px;margin-bottom:18px}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
+  header p{margin:6px 0 0;color:var(--muted)}
+  .steps{display:flex;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
+  .steps li{flex:1;padding:6px 0;border-bottom:3px solid var(--line);color:var(--muted)}
+  .steps li.on{border-color:var(--accent);color:var(--ink)}
+  .steps li.done{border-color:var(--ink);color:var(--ink)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;min-width:0}
+  label,.lbl{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.05em;text-transform:uppercase}
+  .opt{font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted);margin-left:6px}
+  input,textarea{
+    width:100%;font:inherit;color:var(--ink);background:#f7fafc;border:1px solid var(--line);border-radius:4px;padding:11px 12px;
+  }
+  textarea{min-height:120px;resize:vertical}
+  input:focus,textarea:focus,button:focus-visible{outline:3px solid #7fb2e5;outline-offset:1px;border-color:var(--accent)}
+  .field.bad input,.field.bad textarea{border-color:var(--danger);background:#fff6f5}
+  .err{color:var(--danger);font-size:14px;min-height:0}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:420px){.row2{grid-template-columns:1fr}}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  button{
+    font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.05em;text-transform:uppercase;
+    border-radius:4px;border:2px solid var(--ink);padding:11px 20px;cursor:pointer;background:var(--card);color:var(--ink);min-height:48px;
+  }
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1 1 220px}
+  button:disabled{opacity:.55;cursor:default}
+  dl.sum{margin:0 0 18px;display:grid;grid-template-columns:max-content 1fr;gap:6px 14px}
+  dl.sum dt{font-family:var(--display);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  dl.sum dd{margin:0;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+  .handoff{background:#fff7dd;border:1px solid #e3cf8a;border-radius:4px;padding:10px 12px;margin:0 0 16px;font-size:15px}
+  .sigbox{position:relative;border:1px solid var(--ink);border-radius:4px;background:#fff;touch-action:none}
+  .sigbox canvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
+  .sigbox .hint{position:absolute;left:12px;bottom:34px;right:12px;border-bottom:1px dashed var(--line);pointer-events:none}
+  .sigbox .hint span{position:absolute;left:0;top:6px;font-size:13px;color:var(--muted)}
+  .status{margin:14px 0 0;min-height:1.4em;color:var(--muted)}
+  .status.error{color:var(--danger)}
+  .done-mark{font-family:var(--display);font-weight:700;font-size:34px;text-transform:uppercase;color:var(--ok);margin:0 0 6px}
+  a.link{display:inline-block;margin:6px 0 16px;color:var(--accent);font-weight:600;overflow-wrap:anywhere}
+  footer{margin-top:22px;border-top:2px solid var(--ink);padding-top:10px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:15px;color:var(--muted)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Extra beställning</h1>
+    <p>Vänligen fyll i alla uppgifter tydligt. Tack!</p>
+  </header>
+
+  <ol class="steps" id="steps">
+    <li id="st1" class="on">1 Uppgifter</li>
+    <li id="st2">2 Underskrift</li>
+    <li id="st3">3 Klart</li>
+  </ol>
+
+  <!-- PASO 1: datos -->
+  <section id="s1" class="panel">
+    <form id="form" novalidate></form>
+    <div class="actions">
+      <button type="button" class="primary" id="toSign">Gå till underskrift</button>
+    </div>
+  </section>
+
+  <!-- PASO 2: firma del responsable -->
+  <section id="s2" class="panel" hidden>
+    <p class="handoff">Pasa el dispositivo al responsable para que revise y firme con el dedo.</p>
+    <dl class="sum" id="sum"></dl>
+
+    <div class="field">
+      <span class="lbl">Underskrift</span>
+      <div class="sigbox">
+        <canvas id="sig" aria-label="Campo de firma"></canvas>
+        <div class="hint"><span>Firma aquí</span></div>
+      </div>
+      <div class="err" id="sigErr"></div>
+    </div>
+
+    <div class="field">
+      <label for="ansvarig">Underskriven av <span class="opt">(nombre en letra legible, opcional)</span></label>
+      <input id="ansvarig" autocomplete="off">
+    </div>
+    <div class="row2">
+      <div class="field"><label for="datum">Datum</label><input id="datum" type="date"></div>
+      <div class="field"><label for="tid">Tid</label><input id="tid" type="time"></div>
+    </div>
+
+    <div class="field">
+      <label for="pin">Código de acceso <span class="opt">(se recuerda en este dispositivo)</span></label>
+      <input id="pin" type="password" autocomplete="off" inputmode="text">
+    </div>
+
+    <div class="actions">
+      <button type="button" id="back">Tillbaka</button>
+      <button type="button" id="clear">Rensa</button>
+      <button type="button" class="primary" id="save">Spara PDF</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+
+  <!-- PASO 3: listo -->
+  <section id="s3" class="panel" hidden>
+    <p class="done-mark">Sparad</p>
+    <p>El PDF se guardó en Drive y el pedido quedó registrado en Google Sheets.</p>
+    <a class="link" id="pdfLink" href="#" target="_blank" rel="noopener">Abrir PDF</a>
+    <div class="actions"><button type="button" class="primary" id="again">Ny beställning</button></div>
+  </section>
+
+  <footer>Tack för att du bidrar till en ren och trivsam miljö!</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const FIELDS = [
+  {id:'namn', label:'NAMN', req:true, ac:'name'},
+  {id:'hsa', label:'HSA-ID', req:true, ac:'off'},
+  {id:'telefon', label:'TELEFON', type:'tel', req:true, ac:'tel'},
+  {id:'epost', label:'E-POST', type:'email', req:true, ac:'email'},
+  {id:'avdelning', label:'AVDELNING', req:true, ac:'off'},
+  {id:'kostnadsstalle', label:'KOSTNADSSTÄLLE', req:false, ac:'off'},
+  {id:'rumsnummer', label:'RUMSNUMMER', req:true, ac:'off'},
+  {id:'karmnummer', label:'KARMNUMMER', req:false, ac:'off'}
+];
+const REMEMBER = ['namn','hsa','telefon','epost','avdelning','kostnadsstalle'];
+const STORE_KEY = 'extra-bestallning-v1';
+const PIN_KEY = 'extra-bestallning-pin';
+const $ = s => document.querySelector(s);
+
+/* ---------- formulario ---------- */
+function buildForm(){
+  const f = $('#form');
+  let html = '';
+  FIELDS.forEach(x=>{
+    html += `<div class="field" id="f_${x.id}">
+      <label for="${x.id}">${x.label}${x.req?'':'<span class="opt">(opcional)</span>'}</label>
+      <input id="${x.id}" type="${x.type||'text'}" autocomplete="${x.ac}" maxlength="120">
+      <div class="err"></div></div>`;
+  });
+  html += `<div class="field" id="f_bestallning">
+      <label for="bestallning">BESTÄLLNING</label>
+      <textarea id="bestallning" maxlength="500"></textarea>
+      <div class="err"></div></div>`;
+  f.innerHTML = html;
+  f.addEventListener('submit', e=>e.preventDefault());
+  try{
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY)||'{}');
+    REMEMBER.forEach(k=>{ if(saved[k]) $('#'+k).value = saved[k]; });
+  }catch(e){}
+}
+function collect(){
+  const d = {};
+  FIELDS.forEach(x=>{ d[x.id] = $('#'+x.id).value.trim(); });
+  d.bestallning = $('#bestallning').value.trim();
+  return d;
+}
+function setErr(id, msg){
+  const box = $('#f_'+id);
+  box.classList.toggle('bad', !!msg);
+  box.querySelector('.err').textContent = msg || '';
+}
+function validate(d){
+  let first = null;
+  FIELDS.forEach(x=>{
+    let m = '';
+    if(x.req && !d[x.id]) m = 'Completa este campo.';
+    else if(x.id==='epost' && d.epost && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.epost)) m = 'Correo no válido.';
+    setErr(x.id, m);
+    if(m && !first) first = x.id;
+  });
+  setErr('bestallning', d.bestallning ? '' : 'Describe el pedido.');
+  if(!d.bestallning && !first) first = 'bestallning';
+  if(first){ $('#'+first).focus(); return false; }
+  return true;
+}
+
+/* ---------- pasos ---------- */
+function showStep(n){
+  ['s1','s2','s3'].forEach((id,i)=>{ $('#'+id).hidden = (i+1)!==n; });
+  ['st1','st2','st3'].forEach((id,i)=>{
+    const el = $('#'+id);
+    el.classList.toggle('on', i+1===n);
+    el.classList.toggle('done', i+1<n);
+  });
+  window.scrollTo(0,0);
+  if(n===2) setupPad();
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function nowParts(){
+  const d = new Date();
+  return {date:`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`, time:`${pad2(d.getHours())}:${pad2(d.getMinutes())}`};
+}
+function esc(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let current = null;
+$('#toSign').addEventListener('click', ()=>{
+  const d = collect();
+  if(!validate(d)) return;
+  current = d;
+  try{
+    const keep = {}; REMEMBER.forEach(k=>keep[k]=d[k]);
+    localStorage.setItem(STORE_KEY, JSON.stringify(keep));
+  }catch(e){}
+  const rows = FIELDS.map(x=>[x.label, d[x.id]]).concat([['BESTÄLLNING', d.bestallning]]).filter(r=>r[1]);
+  $('#sum').innerHTML = rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
+  const t = nowParts();
+  $('#datum').value = t.date; $('#tid').value = t.time;
+  $('#status').textContent = ''; $('#status').className = 'status';
+  showStep(2);
+});
+$('#back').addEventListener('click', ()=>showStep(1));
+$('#again').addEventListener('click', ()=>{
+  $('#bestallning').value = ''; $('#karmnummer').value = ''; $('#rumsnummer').value = '';
+  $('#ansvarig').value = '';
+  showStep(1);
+});
+
+/* ---------- firma ---------- */
+const pad = {ctx:null, drawing:false, ink:false, dpr:1, b:null};
+function resetBounds(){ pad.b = {x0:1e9,y0:1e9,x1:-1,y1:-1}; }
+function setupPad(){
+  const c = $('#sig');
+  const r = c.getBoundingClientRect();
+  pad.dpr = Math.max(1, window.devicePixelRatio || 1);
+  c.width = Math.round(r.width*pad.dpr);
+  c.height = Math.round(r.height*pad.dpr);
+  const x = c.getContext('2d');
+  x.setTransform(pad.dpr,0,0,pad.dpr,0,0);
+  x.lineWidth = 2.6; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#111';
+  pad.ctx = x; pad.ink = false; resetBounds();
+  $('#sigErr').textContent = '';
+}
+function pos(e){
+  const r = $('#sig').getBoundingClientRect();
+  return {x:e.clientX-r.left, y:e.clientY-r.top};
+}
+function grow(p){
+  const b = pad.b;
+  b.x0 = Math.min(b.x0,p.x); b.y0 = Math.min(b.y0,p.y);
+  b.x1 = Math.max(b.x1,p.x); b.y1 = Math.max(b.y1,p.y);
+}
+(function bindPad(){
+  const c = $('#sig');
+  c.addEventListener('pointerdown', e=>{
+    if(!pad.ctx) return;
+    e.preventDefault();
+    c.setPointerCapture(e.pointerId);
+    pad.drawing = true;
+    const p = pos(e);
+    pad.ctx.beginPath(); pad.ctx.moveTo(p.x,p.y); pad.ctx.lineTo(p.x+0.01,p.y); pad.ctx.stroke();
+    pad.ink = true; grow(p);
+    $('#sigErr').textContent = '';
+  });
+  c.addEventListener('pointermove', e=>{
+    if(!pad.drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    pad.ctx.lineTo(p.x,p.y); pad.ctx.stroke();
+    pad.ctx.beginPath(); pad.ctx.moveTo(p.x,p.y);
+    grow(p);
+  });
+  const end = ()=>{ pad.drawing = false; };
+  c.addEventListener('pointerup', end);
+  c.addEventListener('pointercancel', end);
+  c.addEventListener('pointerleave', end);
+  $('#clear').addEventListener('click', setupPad);
+})();
+function signatureImage(){
+  // recorta la firma a su caja de trazos
+  const c = $('#sig'), b = pad.b, m = 8, d = pad.dpr;
+  const x0 = Math.max(0,(b.x0-m)*d), y0 = Math.max(0,(b.y0-m)*d);
+  const x1 = Math.min(c.width,(b.x1+m)*d), y1 = Math.min(c.height,(b.y1+m)*d);
+  const w = Math.max(1,Math.round(x1-x0)), h = Math.max(1,Math.round(y1-y0));
+  const o = document.createElement('canvas');
+  o.width = w; o.height = h;
+  o.getContext('2d').drawImage(c, x0, y0, w, h, 0, 0, w, h);
+  return {url:o.toDataURL('image/png'), w:w, h:h};
+}
+
+/* ---------- PDF ---------- */
+function buildPdf(d, sig){
+  const jsPDF = window.jspdf.jsPDF;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const L = 18, R = 192, X = 72;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(26);
+  doc.text('EXTRA BESTÄLLNING', L, 26);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text('Vänligen fyll i alla uppgifter tydligt. Tack!', L, 33);
+  doc.setLineWidth(0.6); doc.line(L, 38, R, 38);
+
+  let y = 50;
+  const line = (label, value)=>{
+    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text(label, L, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    if(value) doc.text(String(value), X, y - 0.8, {maxWidth: R - X});
+    doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
+    y += 11;
+  };
+  line('NAMN:', d.namn);
+  line('HSA-ID:', d.hsa);
+  line('TELEFON:', d.telefon);
+  line('E-POST:', d.epost);
+  line('AVDELNING:', d.avdelning);
+  line('KOSTNADSSTÄLLE:', d.kostnadsstalle);
+  line('RUMSNUMMER:', d.rumsnummer);
+  line('KARMNUMMER:', d.karmnummer);
+
+  // Beställning: caja que crece con el texto
+  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.text('BESTÄLLNING:', L, y + 2);
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  const lines = doc.splitTextToSize(d.bestallning, R - X - 6);
+  const boxH = Math.max(34, lines.length * 5.2 + 8);
+  doc.setLineWidth(0.3); doc.rect(X - 2, y - 4, R - X + 2, boxH);
+  doc.text(lines, X + 1, y + 2);
+  y += boxH + 10;
+
+  // Underskrift
+  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.text('UNDERSKRIFT:', L, y);
+  const maxW = 70, maxH = 22;
+  const k = Math.min(maxW / sig.w, maxH / sig.h);
+  const sw = sig.w * k, sh = sig.h * k;
+  doc.addImage(sig.url, 'PNG', X, y + 1.4 - sh, sw, sh);
+  doc.setLineWidth(0.2); doc.line(X - 2, y + 1.4, R, y + 1.4);
+  if(d.ansvarig){
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text(d.ansvarig, X, y + 6);
+  }
+  y += 13;
+  line('DATUM:', d.datum);
+  line('TID:', d.tid);
+
+  doc.setLineWidth(0.6); doc.line(L, 270, R, 270);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('TACK FÖR ATT DU BIDRAR TILL EN REN OCH TRIVSAM MILJÖ!', L, 277);
+  return doc;
+}
+
+/* ---------- guardar ---------- */
+function setStatus(msg, isErr){
+  const s = $('#status'); s.textContent = msg; s.className = 'status' + (isErr ? ' error' : '');
+}
+$('#save').addEventListener('click', ()=>{
+  if(!pad.ink){ $('#sigErr').textContent = 'Falta la firma del responsable.'; return; }
+  if(!$('#datum').value || !$('#tid').value){ setStatus('Completa fecha y hora.', true); return; }
+  if(!window.jspdf){ setStatus('No se cargó la librería de PDF. Revisa la conexión y recarga.', true); return; }
+  const url = (window.CONFIG && window.CONFIG.APPS_SCRIPT_URL) || '';
+  if(!/^https:\/\/script\.google\.com\//.test(url)){
+    setStatus('Falta la URL de Apps Script en config.js.', true); return;
+  }
+  const pin = $('#pin').value.trim();
+  if(!pin){ setStatus('Escribe el código de acceso.', true); return; }
+  const d = Object.assign({}, current, {
+    ansvarig: $('#ansvarig').value.trim(),
+    datum: $('#datum').value,
+    tid: $('#tid').value
+  });
+  const btn = $('#save'); btn.disabled = true;
+  setStatus('Generando PDF…');
+  let payload;
+  try{
+    const doc = buildPdf(d, signatureImage());
+    const b64 = doc.output('datauristring').split(',')[1];
+    const safeRoom = (d.rumsnummer || 'rum').replace(/[^\w.-]+/g,'_');
+    const name = `Extra_bestallning_${d.datum}_${d.tid.replace(':','')}_${safeRoom}.pdf`;
+    payload = {pin:pin, fields:d, fileName:name, pdfBase64:b64};
+  }catch(err){
+    btn.disabled = false; setStatus('No se pudo generar el PDF: ' + err.message, true); return;
+  }
+  setStatus('Guardando en Drive y Sheets…');
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'}, // evita el preflight CORS
+    body: JSON.stringify(payload)
+  })
+    .then(r => r.json())
+    .then(res => {
+      btn.disabled = false;
+      if(!res.ok){ setStatus('No se guardó: ' + (res.error || 'error desconocido'), true); return; }
+      try{ localStorage.setItem(PIN_KEY, pin); }catch(e){}
+      $('#pdfLink').href = res.url;
+      showStep(3);
+    })
+    .catch(err => {
+      btn.disabled = false;
+      setStatus('Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.', true);
+    });
+});
+
+buildForm();
+try{ $('#pin').value = localStorage.getItem(PIN_KEY) || ''; }catch(e){}
+</script>
+</body>
+</html>
