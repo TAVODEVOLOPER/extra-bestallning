@@ -30,6 +30,11 @@
   header{border-top:3px solid var(--ink);border-bottom:2px solid var(--ink);padding:14px 0 12px;margin-bottom:18px}
   h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
   header p{margin:6px 0 0;color:var(--muted)}
+  .lang{display:flex;justify-content:flex-end;margin:0 0 10px}
+  .lang button{min-height:36px;padding:2px 14px;font-size:16px;border-radius:0}
+  .lang button+button{border-left-width:0}
+  .lang button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+  .note{font-size:14px;color:var(--muted)}
   .steps{display:flex;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
   .steps li{flex:1;padding:6px 0;border-bottom:3px solid var(--line);color:var(--muted)}
   .steps li.on{border-color:var(--accent);color:var(--ink)}
@@ -73,69 +78,73 @@
 <body>
 <div class="wrap">
   <header>
+    <div class="lang" role="group" aria-label="Språk / Idioma">
+      <button type="button" data-lang="sv" aria-pressed="true">SV</button>
+      <button type="button" data-lang="es" aria-pressed="false">ES</button>
+    </div>
     <h1>Extra beställning</h1>
-    <p>Vänligen fyll i alla uppgifter tydligt. Tack!</p>
+    <p data-i18n="sub"></p>
   </header>
 
   <ol class="steps" id="steps">
-    <li id="st1" class="on">1 Uppgifter</li>
-    <li id="st2">2 Underskrift</li>
-    <li id="st3">3 Klart</li>
+    <li id="st1" class="on" data-i18n="st1"></li>
+    <li id="st2" data-i18n="st2"></li>
+    <li id="st3" data-i18n="st3"></li>
   </ol>
 
   <!-- PASO 1: datos -->
   <section id="s1" class="panel">
     <form id="form" novalidate></form>
     <div class="actions">
-      <button type="button" class="primary" id="toSign">Gå till underskrift</button>
+      <button type="button" class="primary" id="toSign" data-i18n="next"></button>
     </div>
   </section>
 
   <!-- PASO 2: firma del responsable -->
   <section id="s2" class="panel" hidden>
-    <p class="handoff">Pasa el dispositivo al responsable para que revise y firme con el dedo.</p>
+    <p class="handoff" data-i18n="handoff"></p>
     <dl class="sum" id="sum"></dl>
 
     <div class="field">
-      <span class="lbl">Underskrift</span>
+      <span class="lbl" data-i18n="sig"></span>
       <div class="sigbox">
-        <canvas id="sig" aria-label="Campo de firma"></canvas>
-        <div class="hint"><span>Firma aquí</span></div>
+        <canvas id="sig"></canvas>
+        <div class="hint"><span data-i18n="sigHint"></span></div>
       </div>
       <div class="err" id="sigErr"></div>
     </div>
 
     <div class="field">
-      <label for="ansvarig">Underskriven av <span class="opt">(nombre en letra legible, opcional)</span></label>
+      <label for="ansvarig"><span data-i18n="ansv"></span> <span class="opt" data-i18n="ansvOpt"></span></label>
       <input id="ansvarig" autocomplete="off">
     </div>
     <div class="row2">
-      <div class="field"><label for="datum">Datum</label><input id="datum" type="date"></div>
-      <div class="field"><label for="tid">Tid</label><input id="tid" type="time"></div>
+      <div class="field"><label for="datum" data-i18n="datum"></label><input id="datum" type="date"></div>
+      <div class="field"><label for="tid" data-i18n="tid"></label><input id="tid" type="time"></div>
     </div>
 
     <div class="field">
-      <label for="pin">Código de acceso <span class="opt">(se recuerda en este dispositivo)</span></label>
+      <label for="pin"><span data-i18n="pin"></span> <span class="opt" data-i18n="pinOpt"></span></label>
       <input id="pin" type="password" autocomplete="off" inputmode="text">
     </div>
 
     <div class="actions">
-      <button type="button" id="back">Tillbaka</button>
-      <button type="button" id="clear">Rensa</button>
-      <button type="button" class="primary" id="save">Spara PDF</button>
+      <button type="button" id="back" data-i18n="back"></button>
+      <button type="button" id="clear" data-i18n="clear"></button>
+      <button type="button" class="primary" id="save" data-i18n="save"></button>
     </div>
     <p class="status" id="status" role="status"></p>
   </section>
 
   <!-- PASO 3: listo -->
   <section id="s3" class="panel" hidden>
-    <p class="done-mark">Sparad</p>
-    <p>El PDF se guardó en Drive y el pedido quedó registrado en Google Sheets.</p>
-    <a class="link" id="pdfLink" href="#" target="_blank" rel="noopener">Abrir PDF</a>
-    <div class="actions"><button type="button" class="primary" id="again">Ny beställning</button></div>
+    <p class="done-mark" data-i18n="done"></p>
+    <p data-i18n="doneMsg"></p>
+    <a class="link" id="pdfLink" href="#" target="_blank" rel="noopener" data-i18n="open"></a>
+    <div class="actions"><button type="button" class="primary" id="again" data-i18n="again"></button></div>
   </section>
 
-  <footer>Tack för att du bidrar till en ren och trivsam miljö!</footer>
+  <footer data-i18n="footer"></footer>
 </div>
 
 <script src="config.js"></script>
@@ -156,19 +165,98 @@ const STORE_KEY = 'extra-bestallning-v1';
 const PIN_KEY = 'extra-bestallning-pin';
 const $ = s => document.querySelector(s);
 
+/* ---------- idioma de la interfaz (el PDF siempre sale en sueco) ---------- */
+const LANG_KEY = 'extra-bestallning-lang';
+const I18N = {
+  sv: {
+    sub:'Vänligen fyll i alla uppgifter tydligt. Tack!',
+    st1:'1 Uppgifter', st2:'2 Underskrift', st3:'3 Klart',
+    f_namn:'NAMN', f_hsa:'HSA-ID', f_telefon:'TELEFON', f_epost:'E-POST', f_avdelning:'AVDELNING',
+    f_kostnadsstalle:'KOSTNADSSTÄLLE', f_rumsnummer:'RUMSNUMMER', f_karmnummer:'KARMNUMMER', f_bestallning:'BESTÄLLNING',
+    opt:'(valfritt)', orderHint:'',
+    next:'Gå till underskrift',
+    handoff:'Lämna enheten till ansvarig person, som granskar uppgifterna och skriver under med fingret.',
+    sig:'Underskrift', sigHint:'Skriv under här', sigAria:'Fält för underskrift',
+    ansv:'Underskriven av', ansvOpt:'(läsbart namn, valfritt)',
+    datum:'Datum', tid:'Tid',
+    pin:'Åtkomstkod', pinOpt:'(sparas på den här enheten)',
+    back:'Tillbaka', clear:'Rensa', save:'Spara PDF',
+    done:'Sparad', doneMsg:'PDF:en sparades i Drive och beställningen registrerades i Google Sheets.',
+    open:'Öppna PDF', again:'Ny beställning',
+    footer:'Tack för att du bidrar till en ren och trivsam miljö!',
+    eReq:'Fyll i det här fältet.', eMail:'Ogiltig e-postadress.', eOrder:'Beskriv beställningen.',
+    eSig:'Underskrift från ansvarig saknas.', eDT:'Fyll i datum och tid.',
+    eLib:'PDF-biblioteket laddades inte. Kontrollera anslutningen och ladda om sidan.',
+    eUrl:'URL till Apps Script saknas i config.js.', ePin:'Ange åtkomstkod.',
+    mkPdf:'Skapar PDF…', ePdf:'Kunde inte skapa PDF: ', saving:'Sparar i Drive och Sheets…',
+    notSaved:'Sparades inte: ', unknown:'okänt fel',
+    offline:'Ingen kontakt med servern. Kontrollera internet och försök igen.'
+  },
+  es: {
+    sub:'Rellena todos los datos con claridad. ¡Gracias!',
+    st1:'1 Datos', st2:'2 Firma', st3:'3 Listo',
+    f_namn:'NOMBRE (NAMN)', f_hsa:'ID HSA (HSA-ID)', f_telefon:'TELÉFONO (TELEFON)', f_epost:'CORREO (E-POST)',
+    f_avdelning:'DEPARTAMENTO (AVDELNING)', f_kostnadsstalle:'CENTRO DE COSTE (KOSTNADSSTÄLLE)',
+    f_rumsnummer:'N.º DE HABITACIÓN (RUMSNUMMER)', f_karmnummer:'N.º DE MARCO DE PUERTA (KARMNUMMER)',
+    f_bestallning:'PEDIDO (BESTÄLLNING)',
+    opt:'(opcional)', orderHint:'Escribe el pedido en sueco: este texto aparece tal cual en el PDF.',
+    next:'Ir a la firma',
+    handoff:'Pasa el dispositivo al responsable para que revise los datos y firme con el dedo.',
+    sig:'Firma (Underskrift)', sigHint:'Firma aquí', sigAria:'Campo de firma',
+    ansv:'Firmado por', ansvOpt:'(nombre legible, opcional)',
+    datum:'Fecha (Datum)', tid:'Hora (Tid)',
+    pin:'Código de acceso', pinOpt:'(se recuerda en este dispositivo)',
+    back:'Atrás', clear:'Borrar', save:'Guardar PDF',
+    done:'Guardado', doneMsg:'El PDF se guardó en Drive y el pedido quedó registrado en Google Sheets. El PDF está en sueco.',
+    open:'Abrir PDF', again:'Nuevo pedido',
+    footer:'Tack för att du bidrar till en ren och trivsam miljö!',
+    eReq:'Completa este campo.', eMail:'Correo no válido.', eOrder:'Describe el pedido.',
+    eSig:'Falta la firma del responsable.', eDT:'Completa fecha y hora.',
+    eLib:'No se cargó la librería de PDF. Revisa la conexión y recarga la página.',
+    eUrl:'Falta la URL de Apps Script en config.js.', ePin:'Escribe el código de acceso.',
+    mkPdf:'Generando PDF…', ePdf:'No se pudo generar el PDF: ', saving:'Guardando en Drive y Sheets…',
+    notSaved:'No se guardó: ', unknown:'error desconocido',
+    offline:'Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.'
+  }
+};
+let LANG = 'sv';
+try{
+  const s = localStorage.getItem(LANG_KEY);
+  LANG = (s === 'es' || s === 'sv') ? s : ((navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'sv');
+}catch(e){}
+const t = k => I18N[LANG][k];
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  $('#sig').setAttribute('aria-label', t('sigAria'));
+  const hint = $('#orderHint'); if(hint) hint.hidden = !t('orderHint');
+  document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
+  document.querySelectorAll('.field.bad').forEach(e=>e.classList.remove('bad'));
+  document.querySelectorAll('.field .err').forEach(e=>{ e.textContent = ''; });
+  $('#sigErr').textContent = '';
+  setStatus('');
+  if(current && !$('#s2').hidden) renderSummary();
+}
+document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click', ()=>{
+  LANG = b.dataset.lang;
+  try{ localStorage.setItem(LANG_KEY, LANG); }catch(e){}
+  applyLang();
+}));
+
 /* ---------- formulario ---------- */
 function buildForm(){
   const f = $('#form');
   let html = '';
   FIELDS.forEach(x=>{
     html += `<div class="field" id="f_${x.id}">
-      <label for="${x.id}">${x.label}${x.req?'':'<span class="opt">(opcional)</span>'}</label>
+      <label for="${x.id}"><span data-i18n="f_${x.id}"></span>${x.req?'':' <span class="opt" data-i18n="opt"></span>'}</label>
       <input id="${x.id}" type="${x.type||'text'}" autocomplete="${x.ac}" maxlength="120">
       <div class="err"></div></div>`;
   });
   html += `<div class="field" id="f_bestallning">
-      <label for="bestallning">BESTÄLLNING</label>
+      <label for="bestallning" data-i18n="f_bestallning"></label>
       <textarea id="bestallning" maxlength="500"></textarea>
+      <div class="note" id="orderHint" data-i18n="orderHint"></div>
       <div class="err"></div></div>`;
   f.innerHTML = html;
   f.addEventListener('submit', e=>e.preventDefault());
@@ -192,12 +280,12 @@ function validate(d){
   let first = null;
   FIELDS.forEach(x=>{
     let m = '';
-    if(x.req && !d[x.id]) m = 'Completa este campo.';
-    else if(x.id==='epost' && d.epost && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.epost)) m = 'Correo no válido.';
+    if(x.req && !d[x.id]) m = t('eReq');
+    else if(x.id==='epost' && d.epost && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.epost)) m = t('eMail');
     setErr(x.id, m);
     if(m && !first) first = x.id;
   });
-  setErr('bestallning', d.bestallning ? '' : 'Describe el pedido.');
+  setErr('bestallning', d.bestallning ? '' : t('eOrder'));
   if(!d.bestallning && !first) first = 'bestallning';
   if(first){ $('#'+first).focus(); return false; }
   return true;
@@ -222,6 +310,10 @@ function nowParts(){
 function esc(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 let current = null;
+function renderSummary(){
+  const rows = FIELDS.map(x=>[t('f_'+x.id), current[x.id]]).concat([[t('f_bestallning'), current.bestallning]]).filter(r=>r[1]);
+  $('#sum').innerHTML = rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
+}
 $('#toSign').addEventListener('click', ()=>{
   const d = collect();
   if(!validate(d)) return;
@@ -230,8 +322,7 @@ $('#toSign').addEventListener('click', ()=>{
     const keep = {}; REMEMBER.forEach(k=>keep[k]=d[k]);
     localStorage.setItem(STORE_KEY, JSON.stringify(keep));
   }catch(e){}
-  const rows = FIELDS.map(x=>[x.label, d[x.id]]).concat([['BESTÄLLNING', d.bestallning]]).filter(r=>r[1]);
-  $('#sum').innerHTML = rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
+  renderSummary();
   const t = nowParts();
   $('#datum').value = t.date; $('#tid').value = t.time;
   $('#status').textContent = ''; $('#status').className = 'status';
@@ -306,7 +397,7 @@ function signatureImage(){
   return {url:o.toDataURL('image/png'), w:w, h:h};
 }
 
-/* ---------- PDF ---------- */
+/* ---------- PDF (siempre en sueco, independiente del idioma de la interfaz) ---------- */
 function buildPdf(d, sig){
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'mm', format:'a4'});
@@ -373,22 +464,22 @@ function setStatus(msg, isErr){
   const s = $('#status'); s.textContent = msg; s.className = 'status' + (isErr ? ' error' : '');
 }
 $('#save').addEventListener('click', ()=>{
-  if(!pad.ink){ $('#sigErr').textContent = 'Falta la firma del responsable.'; return; }
-  if(!$('#datum').value || !$('#tid').value){ setStatus('Completa fecha y hora.', true); return; }
-  if(!window.jspdf){ setStatus('No se cargó la librería de PDF. Revisa la conexión y recarga.', true); return; }
+  if(!pad.ink){ $('#sigErr').textContent = t('eSig'); return; }
+  if(!$('#datum').value || !$('#tid').value){ setStatus(t('eDT'), true); return; }
+  if(!window.jspdf){ setStatus(t('eLib'), true); return; }
   const url = (window.CONFIG && window.CONFIG.APPS_SCRIPT_URL) || '';
   if(!/^https:\/\/script\.google\.com\//.test(url)){
-    setStatus('Falta la URL de Apps Script en config.js.', true); return;
+    setStatus(t('eUrl'), true); return;
   }
   const pin = $('#pin').value.trim();
-  if(!pin){ setStatus('Escribe el código de acceso.', true); return; }
+  if(!pin){ setStatus(t('ePin'), true); return; }
   const d = Object.assign({}, current, {
     ansvarig: $('#ansvarig').value.trim(),
     datum: $('#datum').value,
     tid: $('#tid').value
   });
   const btn = $('#save'); btn.disabled = true;
-  setStatus('Generando PDF…');
+  setStatus(t('mkPdf'));
   let payload;
   try{
     const doc = buildPdf(d, signatureImage());
@@ -397,9 +488,9 @@ $('#save').addEventListener('click', ()=>{
     const name = `Extra_bestallning_${d.datum}_${d.tid.replace(':','')}_${safeRoom}.pdf`;
     payload = {pin:pin, fields:d, fileName:name, pdfBase64:b64};
   }catch(err){
-    btn.disabled = false; setStatus('No se pudo generar el PDF: ' + err.message, true); return;
+    btn.disabled = false; setStatus(t('ePdf') + err.message, true); return;
   }
-  setStatus('Guardando en Drive y Sheets…');
+  setStatus(t('saving'));
   fetch(url, {
     method: 'POST',
     headers: {'Content-Type': 'text/plain;charset=utf-8'}, // evita el preflight CORS
@@ -408,19 +499,20 @@ $('#save').addEventListener('click', ()=>{
     .then(r => r.json())
     .then(res => {
       btn.disabled = false;
-      if(!res.ok){ setStatus('No se guardó: ' + (res.error || 'error desconocido'), true); return; }
+      if(!res.ok){ setStatus(t('notSaved') + (res.error || t('unknown')), true); return; }
       try{ localStorage.setItem(PIN_KEY, pin); }catch(e){}
       $('#pdfLink').href = res.url;
       showStep(3);
     })
     .catch(err => {
       btn.disabled = false;
-      setStatus('Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.', true);
+      setStatus(t('offline'), true);
     });
 });
 
 buildForm();
 try{ $('#pin').value = localStorage.getItem(PIN_KEY) || ''; }catch(e){}
+applyLang();
 </script>
 </body>
 </html>
