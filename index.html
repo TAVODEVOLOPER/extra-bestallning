@@ -191,6 +191,8 @@
   .btn.primary{background:var(--navy);color:#fff}
   .btn.primary:hover{background:var(--navy-2)}
   .btn.sm{min-height:42px;padding:0 16px;font-size:15px}
+  .acts{display:flex;gap:8px;flex-shrink:0}
+  .btn.del.armed{background:#b3261e;border-color:#b3261e;color:#fff}
   .btn[data-armed]{background:var(--danger);border-color:var(--danger);color:#fff}
   .btn:disabled{opacity:.55;cursor:default}
   .actions .primary{flex:1 1 220px}
@@ -217,6 +219,7 @@
   ul.rows{list-style:none;margin:18px 0 0;padding:0;background:#fff;border:1px solid var(--line);border-radius:var(--r-panel);overflow:hidden}
   ul.rows:empty{display:none}
   ul.rows li{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 16px}
+  @media (max-width:639px){ul.rows li{flex-wrap:wrap}.acts{width:100%}.acts .btn{flex:1}}
   ul.rows li+li{border-top:1px solid var(--line)}
   .hi{min-width:0}
   .hi b{display:block;font:700 19px/1.2 var(--display);font-stretch:88%;color:var(--navy)}
@@ -497,8 +500,8 @@
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const APP_VERSION = '1.8.1';          // sube este número en cada cambio de index.html
-const EXPECTED_SERVER = '1.8.1';     // versión de Code.gs que necesita esta app
+const APP_VERSION = '1.9.0';          // sube este número en cada cambio de index.html
+const EXPECTED_SERVER = '1.9.0';     // versión de Code.gs que necesita esta app
 const FIELDS = [
   {id:'namn', type:'text', req:false, ac:'name', icon:'user', grp:'who'},
   {id:'hsa', req:false, ac:'off', icon:'id', grp:'who'},
@@ -554,7 +557,7 @@ const I18N = {
     adminTag:'Administratör', logout:'Logga ut', newOrder:'Ny beställning', usersBtn:'Användare',
     scopeUser:'Här ser du bara dina egna PDF.', scopeAdmin:'Administratör: du ser alla användares PDF.',
     usersNote:'Ta bort en användare om personen glömt sitt lösenord. Då kan hen skapa användaren på nytt. Tidigare PDF finns kvar och hör till användarnamnet.',
-    deleteBtn:'Ta bort', confirmBtn:'Bekräfta', created:'skapad', noUsers:'Inga användare.',
+    deleteBtn:'Ta bort', confirmBtn:'Bekräfta', deleted:'PDF:en har tagits bort.', created:'skapad', noUsers:'Inga användare.',
     eFill:'Fyll i alla fält.', eMatch:'Lösenorden matchar inte.',
     err_BAD_REG_CODE:'Fel registreringskod.', err_BAD_LOGIN:'Fel användarnamn eller lösenord.',
     err_BAD_ADMIN:'Fel administratörskod.', err_THROTTLED:'För många försök. Vänta 10 minuter.',
@@ -610,7 +613,7 @@ const I18N = {
     adminTag:'Administrador', logout:'Salir', newOrder:'Nuevo pedido', usersBtn:'Usuarios',
     scopeUser:'Aquí solo ves tus propios PDF.', scopeAdmin:'Administrador: ves los PDF de todos los usuarios.',
     usersNote:'Elimina un usuario si olvidó su contraseña: así podrá crearse el usuario de nuevo. Sus PDF anteriores se conservan y siguen asociados a su nombre de usuario.',
-    deleteBtn:'Eliminar', confirmBtn:'Confirmar', created:'creado', noUsers:'No hay usuarios.',
+    deleteBtn:'Eliminar', confirmBtn:'Confirmar', deleted:'PDF eliminado.', created:'creado', noUsers:'No hay usuarios.',
     eFill:'Completa todos los campos.', eMatch:'Las contraseñas no coinciden.',
     err_BAD_REG_CODE:'Código de usuarios incorrecto.', err_BAD_LOGIN:'Usuario o contraseña incorrectos.',
     err_BAD_ADMIN:'Código de administrador incorrecto.', err_THROTTLED:'Demasiados intentos. Espera 10 minutos.',
@@ -1129,7 +1132,8 @@ function renderHistory(){
   ul.innerHTML = rows.map(it=>`<li>
     <div class="hi"><b>${esc(histLabel(it))}</b>
       <span>${esc([it.namn, it.rum, it.avd, it.usr ? '@' + it.usr : ''].filter(Boolean).join(' · '))}</span></div>
-    <button type="button" class="btn sm" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button></li>`).join('');
+    <div class="acts"><button type="button" class="btn sm" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button>
+    <button type="button" class="btn sm del" data-del="${esc(it.id)}">${esc(t('deleteBtn'))}</button></div></li>`).join('');
 }
 function loadHistory(){
   if(!apiUrl()){ setMsg('#hstatus', t('eUrl'), true); return; }
@@ -1146,7 +1150,21 @@ $('#hrefresh').addEventListener('click', loadHistory);
 $('#hq').addEventListener('input', renderHistory);
 $('#hlist').addEventListener('click', e=>{
   const b = e.target.closest('button[data-id]');
-  if(b) openPdf(b.dataset.id, b, '#hstatus');
+  if(b){ openPdf(b.dataset.id, b, '#hstatus'); return; }
+  const d = e.target.closest('button[data-del]');
+  if(!d) return;
+  if(!d.dataset.armed){          // primer toque: pide confirmación en el propio botón
+    d.dataset.armed = '1'; d.textContent = t('confirmBtn'); d.classList.add('armed');
+    setTimeout(()=>{ if(d.isConnected){ delete d.dataset.armed; d.classList.remove('armed'); d.textContent = t('deleteBtn'); } }, 4000);
+    return;
+  }
+  d.disabled = true;
+  api({action:'delpdf', id:d.dataset.del}).then(res=>{
+    if(!res.ok) throw res;
+    hist = hist.filter(it=>it.id !== d.dataset.del);
+    setMsg('#hstatus', t('deleted'));
+    renderHistory();
+  }).catch(err=>{ d.disabled = false; setMsg('#hstatus', t('hErr') + errText(err), true); });
 });
 
 /* ---------- usuarios (administrador) ---------- */
