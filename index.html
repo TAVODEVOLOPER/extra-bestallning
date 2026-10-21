@@ -2,277 +2,512 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Extra beställning</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Extra">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="preload" as="image" href="assets/iss-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<script>
+  /* La pantalla de logo solo sale al abrir la app, no al recargar por una actualización */
+  (function(){
+    try{
+      var skip = sessionStorage.getItem('extra-splash') === '1' || /[?&]v=/.test(location.search);
+      sessionStorage.setItem('extra-splash', '1');
+      if(skip) document.documentElement.classList.add('nosplash');
+    }catch(e){}
+  })();
+</script>
 <style>
-  /* Layout: una columna estrecha, pensada para móvil; cabecera tipo formulario impreso. Vistas: acceso > datos > firma > listo, más historial y usuarios. */
+  /*
+   * Dirección: rotulación de hospital. Azul exacto del logo ISS sobre blanco y gris azulado,
+   * pictogramas como los del formulario en papel, menú lateral azul con el logo sobre placa blanca.
+   * Móvil: barra superior + menú que se desliza. Tablet: igual, con formulario a dos columnas.
+   * Escritorio (900 px o más): menú fijo a la izquierda, firma a dos columnas.
+   */
   :root{
-    --paper:#e9eff5;
-    --card:#ffffff;
-    --ink:#0a1f33;
-    --muted:#566371;
-    --line:#bfcad6;
-    --accent:#062849; /* azul ISS (aprox. #062849, ver brandcolorcode.com/iss-a-s) */
-    --accent-ink:#ffffff;
-    --danger:#b3261e;
-    --ok:#1b6b39;
-    --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
-    --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    --navy:#0D132D;          /* azul del logo */
+    --navy-2:#1A2247;
+    --navy-3:#2B3569;
+    --bg:#F1F3F8;
+    --surface:#FFFFFF;
+    --line:#D9DEE9;
+    --line-strong:#9EA8C0;
+    --text:#0D132D;
+    --muted:#566079;
+    --on-navy:#E8EBF6;
+    --on-navy-muted:#A6AECB;
+    --focus:#2F6BDB;
+    --ok:#1E7A46;
+    --danger:#B3261E;
+    --warn-bg:#FFF5D9;
+    --warn-line:#E2C766;
+    --display:'Archivo','Arial Narrow','Helvetica Neue',Arial,sans-serif;
+    --body:'Atkinson Hyperlegible','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    --r-panel:10px;
+    --r-ctl:6px;
+    --nav-w:280px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0}
-  body{
-    background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
-    padding:20px 16px 48px;
-  }
-  .wrap{max-width:640px;margin:0 auto}
-  header{border-top:6px solid var(--accent);border-bottom:2px solid var(--accent);padding:14px 0 12px;margin-bottom:18px}
-  h1{color:var(--accent);font-family:var(--display);font-weight:700;font-size:clamp(34px,9vw,48px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
-  header p{margin:6px 0 0;color:var(--muted)}
-  .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px}
-  .vtag{font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.06em;color:var(--muted)}
-  .lang{margin:0}
-  .updbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7dd;border:2px solid #d9bd55;border-radius:6px;padding:10px 12px;margin:0 0 14px}
-  .updbar span{flex:1 1 200px;font-weight:600}
-  .updbar button{min-height:42px;font-size:17px;padding:6px 16px}
-  .ver{margin-top:6px;font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted)}
-  .ver.old{color:var(--danger);font-weight:600}
-  .ver .status{margin:4px 0 0;min-height:0;font-size:13px}
-  .seg{display:flex}
-  .seg button{min-height:38px;padding:2px 12px;font-size:16px;border-radius:0}
-  .seg button+button{border-left-width:0}
-  .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-  .tabs{margin:0 0 16px}
-  .tabs button{flex:1;font-size:17px;padding:4px 6px;min-height:44px}
-  .note{font-size:14px;color:var(--muted)}
-  .toplinks{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
-  .who{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.04em;text-transform:uppercase;margin-right:auto}
-  .who small{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:.04em;background:var(--accent);color:var(--accent-ink);border-radius:3px;padding:1px 6px;margin-left:6px;vertical-align:middle}
-  .folder,.lnk{color:var(--accent);font-weight:600}
-  button.lnk{border:0;background:none;padding:0;min-height:0;font-family:var(--body);font-size:16px;letter-spacing:0;text-transform:none;text-decoration:underline;cursor:pointer}
-  ul.hist{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
-  ul.hist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:#f7fafc}
-  .hi{min-width:0}
-  .hi b{font-family:var(--display);font-size:21px;letter-spacing:.04em;color:var(--accent)}
-  .hi span{display:block;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
-  ul.hist li button{min-height:42px;font-size:17px;padding:6px 14px;flex:none}
-  .steps{display:flex;gap:8px;margin:0 0 18px;padding:0;list-style:none;font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
-  .steps li{flex:1;padding:6px 0;border-bottom:3px solid var(--line);color:var(--muted)}
-  .steps li.on{border-color:var(--accent);color:var(--ink)}
-  .steps li.done{border-color:var(--ink);color:var(--ink)}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px}
-  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;min-width:0}
-  label,.lbl{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.05em;text-transform:uppercase}
-  .opt{font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted);margin-left:6px}
-  input,textarea{
-    width:100%;font:inherit;color:var(--ink);background:#f7fafc;border:1px solid var(--line);border-radius:4px;padding:11px 12px;
-  }
-  textarea{min-height:120px;resize:vertical}
-  input:focus,textarea:focus,button:focus-visible{outline:3px solid #7fb2e5;outline-offset:1px;border-color:var(--accent)}
-  .field.bad input,.field.bad textarea{border-color:var(--danger);background:#fff6f5}
-  .err{color:var(--danger);font-size:14px;min-height:0}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:420px){.row2{grid-template-columns:1fr}}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-  button{
-    font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.05em;text-transform:uppercase;
-    border-radius:4px;border:2px solid var(--ink);padding:11px 20px;cursor:pointer;background:var(--card);color:var(--ink);min-height:48px;
-  }
-  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1 1 220px}
-  button:disabled{opacity:.55;cursor:default}
-  dl.sum{margin:0 0 18px;display:grid;grid-template-columns:max-content 1fr;gap:6px 14px}
-  dl.sum dt{font-family:var(--display);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-  dl.sum dd{margin:0;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
-  .handoff{background:#fff7dd;border:1px solid #e3cf8a;border-radius:4px;padding:10px 12px;margin:0 0 16px;font-size:15px}
-  .sigbox{position:relative;border:1px solid var(--ink);border-radius:4px;background:#fff;touch-action:none}
-  .sigbox canvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
-  .sigbox .hint{position:absolute;left:12px;bottom:34px;right:12px;border-bottom:1px dashed var(--line);pointer-events:none}
-  .sigbox .hint span{position:absolute;left:0;top:6px;font-size:13px;color:var(--muted)}
-  .status{margin:14px 0 0;min-height:1.4em;color:var(--muted)}
-  .status.error{color:var(--danger)}
-  .done-mark{font-family:var(--display);font-weight:700;font-size:34px;text-transform:uppercase;color:var(--ok);margin:0 0 6px}
-  a.link{display:inline-block;margin:6px 0 16px;color:var(--accent);font-weight:600;overflow-wrap:anywhere}
-  footer{margin-top:22px;border-top:2px solid var(--accent);padding-top:10px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:15px;color:var(--muted)}
+  html{color-scheme:light;-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.5 var(--body)}
+  button,input,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
   [hidden]{display:none!important}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .ico{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- pantalla de logo ---------- */
+  .splash{position:fixed;inset:0;z-index:100;background:#fff;display:grid;place-content:center;justify-items:center;gap:22px;
+    transition:opacity .45s ease;animation:splashOut .4s ease 5s forwards}
+  .splash.out{opacity:0;pointer-events:none}
+  .nosplash .splash{display:none}
+  .splash img{width:min(46vw,230px);height:auto;animation:logoIn .8s cubic-bezier(.2,.7,.2,1) both}
+  .splash p{margin:0;font:700 24px/1 var(--display);font-stretch:88%;color:var(--navy);animation:fadeIn .6s .4s both}
+  @keyframes logoIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes splashOut{to{opacity:0;visibility:hidden}}
+
+  /* ---------- estructura: menú lateral + contenido ---------- */
+  .shell{min-height:100dvh}
+  .nav{position:fixed;z-index:40;top:0;bottom:0;left:0;width:min(86vw,var(--nav-w));background:var(--navy);color:var(--on-navy);
+    display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;
+    transform:translateX(-102%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:6px 0 24px rgba(13,19,45,.25)}
+  body.nav-open .nav{transform:none;visibility:visible;transition:transform .22s ease,visibility 0s}
+  body.nav-open{overflow:hidden}
+  .scrim{position:fixed;inset:0;z-index:30;background:rgba(13,19,45,.55);opacity:0;pointer-events:none;transition:opacity .2s}
+  body.nav-open .scrim{opacity:1;pointer-events:auto}
+  body[data-auth="out"] .nav,body[data-auth="out"] .scrim,body[data-auth="out"] .topbar{display:none}
+
+  .brand{background:#fff;color:var(--navy);display:flex;align-items:center;gap:12px;
+    padding:max(16px,env(safe-area-inset-top)) 12px 16px 18px}
+  .brand img{width:50px;height:auto;flex:none}
+  .brand span{font:700 20px/1.1 var(--display);font-stretch:88%;flex:1;min-width:0}
+  .iconbtn{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--r-ctl);background:transparent;color:var(--navy);flex:none}
+  .iconbtn:hover{background:#E6E9F3}
+  .iconbtn .ico{width:24px;height:24px}
+  .who{display:flex;align-items:center;gap:12px;padding:18px 18px 10px}
+  .avatar{width:42px;height:42px;border-radius:50%;background:var(--navy-3);color:#fff;display:grid;place-items:center;font:700 16px var(--display);flex:none}
+  .whotxt{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+  .whoname{font-weight:700;color:#fff;overflow-wrap:anywhere;line-height:1.2}
+  .chip{background:#fff;color:var(--navy);border-radius:99px;padding:0 10px;font-size:13px;font-weight:700;line-height:20px}
+  .navlist{display:flex;flex-direction:column;gap:4px;padding:8px 12px}
+  .navitem{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 14px;border:0;border-radius:var(--r-ctl);
+    background:transparent;color:var(--on-navy);font-weight:700;text-align:left;text-decoration:none}
+  .navitem .ico{width:22px;height:22px}
+  .navitem:hover{background:var(--navy-2)}
+  .navitem[aria-current="page"]{background:var(--navy-3);color:#fff}
+  .nav :focus-visible{outline-color:#A9C4FF}
+  .navmsg{margin:0 20px;font-size:14px;color:var(--on-navy-muted)}
+  .navfoot{margin-top:auto;padding:16px 12px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;border-top:1px solid #29325F}
+  .navfoot>.seg,.navfoot>.ver,.navfoot>.thanks{margin-inline:6px}
+  .ver{font-size:13px;color:var(--on-navy-muted);line-height:1.45}
+  .ver.old{color:#FFB9AE}
+  .linkbtn{border:0;background:none;padding:0;color:inherit;text-decoration:underline;font-size:13px;min-height:28px}
+  .ver p{margin:2px 0 0;min-height:0}
+  .thanks{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--on-navy-muted);margin:0}
+  .thanks .ico{margin-top:1px}
+
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;height:calc(60px + env(safe-area-inset-top));
+    padding:env(safe-area-inset-top) max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));background:#fff;border-bottom:1px solid var(--line)}
+  .topbar img{height:36px;width:auto;margin-left:4px}
+  .topbar span{font:700 19px/1 var(--display);font-stretch:88%;color:var(--navy);margin-left:8px}
+
+  .stage{padding:20px max(16px,env(safe-area-inset-right)) 56px max(16px,env(safe-area-inset-left));min-width:0}
+  .view{max-width:760px;margin:0 auto}
+  body[data-auth="out"] .stage{min-height:100dvh;display:grid;align-content:center;padding-block:28px}
+
+  @media (min-width:640px){
+    .stage{padding-top:30px}
+    .view{max-width:820px}
+  }
+  @media (min-width:900px){
+    .shell{display:grid;grid-template-columns:var(--nav-w) minmax(0,1fr)}
+    body[data-auth="out"] .shell{grid-template-columns:minmax(0,1fr)}
+    .nav{position:sticky;top:0;height:100dvh;width:auto;transform:none;visibility:visible;transition:none;box-shadow:none}
+    .scrim,.topbar,.navclose{display:none}
+    body.nav-open{overflow:auto}
+    .stage{padding:40px 48px 72px}
+    .view{max-width:980px}
+  }
+
+  /* ---------- avisos de versión ---------- */
+  .notice{display:flex;gap:10px 14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);
+    border:1px solid var(--warn-line);border-radius:var(--r-ctl);padding:10px 14px;margin:0 auto 16px;max-width:760px}
+  .notice span{flex:1 1 220px;font-weight:700}
+  @media (min-width:640px){.notice{max-width:820px}}
+  @media (min-width:900px){.notice{max-width:980px}}
+
+  /* ---------- cabecera de cada vista ---------- */
+  .viewhead{margin:0 0 20px}
+  h1{margin:0;font:700 clamp(28px,5.2vw,40px)/1.05 var(--display);font-stretch:86%;letter-spacing:-.01em;color:var(--navy);text-wrap:balance}
+  h1:focus{outline:none}
+  .sub{margin:8px 0 0;color:var(--muted)}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;list-style:none;margin:0 auto 20px;padding:0;max-width:760px}
+  @media (min-width:640px){.steps{max-width:820px}}
+  @media (min-width:900px){.steps{max-width:980px}}
+  .steps li{border-top:4px solid var(--line);padding-top:8px;font-size:14px;font-weight:700;color:var(--muted)}
+  .steps li.on,.steps li.done{border-color:var(--navy)}
+  .steps li.on{color:var(--text)}
+
+  /* ---------- hojas y formulario ---------- */
+  .sheet{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-panel);padding:20px}
+  @media (min-width:640px){.sheet{padding:28px}}
+  fieldset.grp{border:0;margin:0 0 30px;padding:0;min-width:0}
+  fieldset.grp:last-of-type{margin-bottom:8px}
+  legend{padding:0;margin:0 0 14px;font:700 21px/1.2 var(--display);font-stretch:88%;color:var(--navy)}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px 20px}
+  @media (min-width:640px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+  .grid+.field,.field+.field,.field+.grid{margin-top:16px}
+  label,.lbl{font-weight:700;font-size:15px;line-height:1.3}
+  .opt{font-weight:400;color:var(--muted);margin-left:4px}
+  .inp{position:relative}
+  .inp>.ico{position:absolute;left:14px;top:50%;margin-top:-10px;color:var(--muted);pointer-events:none}
+  .inp.ta>.ico{top:15px;margin-top:0}
+  input,textarea{width:100%;font-size:16px;background:#fff;border:1.5px solid var(--line-strong);border-radius:var(--r-ctl);padding:11px 12px 11px 46px;min-height:50px}
+  textarea{min-height:140px;resize:vertical;padding-top:13px}
+  input:focus-visible,textarea:focus-visible{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(47,107,219,.28)}
+  .field.bad input,.field.bad textarea{border-color:var(--danger);background:#FFF7F6}
+  .err{color:var(--danger);font-size:14px}
+  .note{font-size:14px;color:var(--muted)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 22px;border-radius:var(--r-ctl);
+    border:1.5px solid var(--navy);background:#fff;color:var(--navy);font-weight:700;font-size:16px;line-height:1.2;text-decoration:none}
+  .btn:hover{background:#EBEEF7}
+  .btn.primary{background:var(--navy);color:#fff}
+  .btn.primary:hover{background:var(--navy-2)}
+  .btn.sm{min-height:42px;padding:0 16px;font-size:15px}
+  .btn[data-armed]{background:var(--danger);border-color:var(--danger);color:#fff}
+  .btn:disabled{opacity:.55;cursor:default}
+  .actions .primary{flex:1 1 220px}
+  @media (min-width:900px){.actions .primary{flex:0 1 auto;min-width:260px}}
+  .status{margin:14px 0 0;min-height:1.5em;color:var(--muted)}
+  .status.error{color:var(--danger);font-weight:700}
+  .status a{color:var(--navy);font-weight:700}
+
+  /* ---------- firma ---------- */
+  .signgrid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+  @media (min-width:900px){.signgrid{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}}
+  .handoff{margin:0 0 16px}
+  .sum{margin:0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 16px}
+  .sum dt{color:var(--muted);font-weight:700;font-size:14px;padding-top:1px}
+  .sum dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+  .sigbox{position:relative;border:1.5px solid var(--navy);border-radius:var(--r-ctl);background:#fff;touch-action:none}
+  .sigbox canvas{display:block;width:100%;height:clamp(200px,34vh,300px);touch-action:none;cursor:crosshair}
+  .sigbox .hint{position:absolute;left:16px;right:16px;bottom:44px;border-bottom:1.5px dashed var(--line-strong);pointer-events:none}
+  .sigbox .hint span{position:absolute;left:0;top:6px;font-size:14px;color:var(--muted)}
+  .padtools{display:flex;justify-content:space-between;align-items:center;gap:12px}
+
+  /* ---------- listas (PDF guardados, usuarios) ---------- */
+  ul.rows{list-style:none;margin:18px 0 0;padding:0;background:#fff;border:1px solid var(--line);border-radius:var(--r-panel);overflow:hidden}
+  ul.rows:empty{display:none}
+  ul.rows li{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 16px}
+  ul.rows li+li{border-top:1px solid var(--line)}
+  .hi{min-width:0}
+  .hi b{display:block;font:700 19px/1.2 var(--display);font-stretch:88%;color:var(--navy)}
+  .hi span{display:block;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+  .toolbar{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+  @media (min-width:640px){.toolbar{grid-template-columns:minmax(0,1fr) auto;align-items:end}}
+  .toolbar .actions{margin:0}
+
+  .okmark{width:60px;height:60px;color:var(--ok);margin-bottom:10px;stroke-width:1.6}
+
+  /* ---------- acceso ---------- */
+  .authcard{max-width:440px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px 24px}
+  .authhead{text-align:center;margin-bottom:22px}
+  .authhead img{height:78px;width:auto}
+  .authhead h1{margin-top:14px;font-size:clamp(28px,7vw,34px)}
+  .seg{--seg-line:var(--line-strong);--seg-fg:var(--text);--seg-bg:#fff;--seg-on-bg:var(--navy);--seg-on-fg:#fff;display:inline-flex;
+    border:1.5px solid var(--seg-line);border-radius:var(--r-ctl);overflow:hidden;background:var(--seg-bg)}
+  .seg button{border:0;background:transparent;color:var(--seg-fg);font-weight:700;font-size:14px;padding:0 14px;min-height:36px}
+  .seg button+button{border-left:1.5px solid var(--seg-line)}
+  .seg button[aria-pressed="true"]{background:var(--seg-on-bg);color:var(--seg-on-fg)}
+  .nav .seg{--seg-line:#4B5588;--seg-fg:var(--on-navy);--seg-bg:transparent;--seg-on-bg:#fff;--seg-on-fg:var(--navy);align-self:flex-start}
+  .tabs{display:flex;width:100%;margin:0 0 20px}
+  .tabs button{flex:1;min-height:46px;font-size:15px;padding:0 6px}
+  .authfoot{max-width:440px;margin:16px auto 0;display:flex;gap:12px 20px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .authfoot .ver{color:var(--muted)}
+  .authfoot .ver.old{color:var(--danger)}
+
+  @media (prefers-reduced-motion:reduce){
+    .nav,.scrim{transition:none!important}
+    .splash img,.splash p{animation:none}
+    .splash{transition:none}
+  }
 </style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="topbar">
-      <span class="vtag" id="vtag"></span>
+<body data-auth="out">
+
+<!-- pictogramas (los mismos del formulario en papel) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+  <symbol id="i-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1M14.5 10h4M14.5 13.5h4"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24"><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M4 21h16"/><circle cx="14.5" cy="12.5" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-frame" viewBox="0 0 24 24"><path d="M4 21V3h16v18M8 21V7h8v14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M15 5l4 4L8 20H4v-4z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 13h5M9.5 16.5h5"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.3c2 .7 3.5 2.6 3.5 5.7"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/></symbol>
+  <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></symbol>
+</svg>
+
+<!-- pantalla de logo al abrir la app -->
+<div class="splash" id="splash" aria-hidden="true">
+  <img src="assets/iss-logo.png" alt="" width="600" height="523">
+  <p>Extra beställning</p>
+</div>
+
+<div class="shell">
+
+  <!-- MENÚ LATERAL -->
+  <aside class="nav" id="nav" data-i18n-aria="navLabel">
+    <div class="brand">
+      <img src="assets/iss-logo.png" alt="ISS" width="600" height="523">
+      <span>Extra beställning</span>
+      <button type="button" class="iconbtn navclose" id="navClose" data-i18n-aria="close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="who" id="who"></div>
+    <nav class="navlist">
+      <button type="button" class="navitem" id="newBtn"><svg class="ico"><use href="#i-plus"/></svg><span data-i18n="newOrder"></span></button>
+      <button type="button" class="navitem" id="histBtn"><svg class="ico"><use href="#i-file"/></svg><span data-i18n="hist"></span></button>
+      <button type="button" class="navitem" id="usersBtn" hidden><svg class="ico"><use href="#i-users"/></svg><span data-i18n="usersBtn"></span></button>
+      <a class="navitem" id="folderLink" href="#" target="_blank" rel="noopener" hidden><svg class="ico"><use href="#i-folder"/></svg><span data-i18n="folder"></span></a>
+      <button type="button" class="navitem" id="installBtn" hidden><svg class="ico"><use href="#i-install"/></svg><span data-i18n="install"></span></button>
+    </nav>
+    <p class="navmsg" id="navMsg" role="status"></p>
+    <div class="navfoot">
       <div class="lang seg" role="group" aria-label="Språk / Idioma">
         <button type="button" data-lang="sv" aria-pressed="true">SV</button>
         <button type="button" data-lang="es" aria-pressed="false">ES</button>
       </div>
+      <div class="ver" id="ver">
+        <span id="verText"></span><br>
+        <button type="button" class="linkbtn" id="verCheck" data-i18n="verCheck"></button>
+        <p role="status" id="verMsg"></p>
+      </div>
+      <button type="button" class="navitem" id="logoutBtn"><svg class="ico"><use href="#i-out"/></svg><span data-i18n="logout"></span></button>
+      <p class="thanks"><svg class="ico"><use href="#i-heart"/></svg><span data-i18n="footer"></span></p>
     </div>
-    <h1>Extra beställning</h1>
-    <p data-i18n="sub"></p>
-  </header>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <!-- aviso de versión nueva -->
-  <div class="updbar" id="updbar" hidden>
-    <span id="updText"></span>
-    <button type="button" class="primary" id="updBtn" data-i18n="updBtn"></button>
+  <div class="main" id="main">
+
+    <!-- barra superior (móvil y tablet) -->
+    <header class="topbar">
+      <button type="button" class="iconbtn" id="menuBtn" aria-controls="nav" aria-expanded="false" data-i18n-aria="menu"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <img src="assets/iss-logo.png" alt="ISS" width="600" height="523">
+      <span>Extra beställning</span>
+    </header>
+
+    <main class="stage" id="stage">
+
+      <div class="notice" id="updbar" hidden>
+        <span id="updText"></span>
+        <button type="button" class="btn sm primary" id="updBtn"><svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="updBtn"></span></button>
+      </div>
+      <div class="notice" id="srvWarn" hidden><span data-i18n="srvOld"></span></div>
+
+      <ol class="steps" id="steps" hidden>
+        <li id="st1" class="on" data-i18n="st1"></li>
+        <li id="st2" data-i18n="st2"></li>
+        <li id="st3" data-i18n="st3"></li>
+      </ol>
+
+      <!-- ACCESO -->
+      <section id="sA" class="view">
+        <div class="authcard">
+          <div class="authhead">
+            <img src="assets/iss-logo.png" alt="ISS" width="600" height="523">
+            <h1>Extra beställning</h1>
+            <p class="sub" data-i18n="authSub"></p>
+          </div>
+          <div class="tabs seg" role="group" id="tabs">
+            <button type="button" data-mode="login" aria-pressed="true" data-i18n="tabLogin"></button>
+            <button type="button" data-mode="register" aria-pressed="false" data-i18n="tabReg"></button>
+            <button type="button" data-mode="admin" aria-pressed="false" data-i18n="tabAdmin"></button>
+          </div>
+          <form id="aForm" novalidate>
+            <p class="note" id="aHint" hidden data-i18n="hintReg"></p>
+            <div class="field" id="g_code" hidden>
+              <label for="a_code" data-i18n="fUserCode"></label>
+              <div class="inp"><svg class="ico"><use href="#i-lock"/></svg><input id="a_code" type="password" autocomplete="off"></div>
+            </div>
+            <div class="field" id="g_name" hidden>
+              <label for="a_name" data-i18n="fFullName"></label>
+              <div class="inp"><svg class="ico"><use href="#i-id"/></svg><input id="a_name" autocomplete="name" maxlength="80"></div>
+            </div>
+            <div class="field" id="g_user">
+              <label for="a_user" data-i18n="fUser"></label>
+              <div class="inp"><svg class="ico"><use href="#i-user"/></svg><input id="a_user" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30"></div>
+            </div>
+            <div class="field" id="g_pass">
+              <label for="a_pass" data-i18n="fPass"></label>
+              <div class="inp"><svg class="ico"><use href="#i-lock"/></svg><input id="a_pass" type="password" autocomplete="current-password" maxlength="100"></div>
+            </div>
+            <div class="field" id="g_pass2" hidden>
+              <label for="a_pass2" data-i18n="fPass2"></label>
+              <div class="inp"><svg class="ico"><use href="#i-lock"/></svg><input id="a_pass2" type="password" autocomplete="new-password" maxlength="100"></div>
+            </div>
+            <div class="field" id="g_admin" hidden>
+              <label for="a_admin" data-i18n="fAdminCode"></label>
+              <div class="inp"><svg class="ico"><use href="#i-lock"/></svg><input id="a_admin" type="password" autocomplete="off"></div>
+            </div>
+            <div class="actions"><button type="submit" class="btn primary" id="aGo" data-i18n="bLogin"></button></div>
+            <p class="status" id="astatus" role="status"></p>
+          </form>
+        </div>
+        <div class="authfoot">
+          <div class="lang seg" role="group" aria-label="Språk / Idioma">
+            <button type="button" data-lang="sv" aria-pressed="true">SV</button>
+            <button type="button" data-lang="es" aria-pressed="false">ES</button>
+          </div>
+          <div class="ver" id="ver2">
+            <span id="verText2"></span>
+            <button type="button" class="linkbtn" id="verCheck2" data-i18n="verCheck"></button>
+            <p role="status" id="verMsg2"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 1: datos -->
+      <section id="s1" class="view" hidden>
+        <header class="viewhead">
+          <h1>Extra beställning</h1>
+          <p class="sub" data-i18n="sub"></p>
+        </header>
+        <div class="sheet">
+          <form id="form" novalidate></form>
+          <div class="actions">
+            <button type="button" class="btn primary" id="toSign"><span data-i18n="next"></span><svg class="ico"><use href="#i-pen"/></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 2: firma del responsable -->
+      <section id="s2" class="view" hidden>
+        <header class="viewhead"><h1 data-i18n="h_sign"></h1></header>
+        <p class="notice handoff" data-i18n="handoff"></p>
+        <div class="signgrid">
+          <div class="sheet"><dl class="sum" id="sum"></dl></div>
+          <div class="sheet">
+            <div class="field">
+              <span class="lbl" data-i18n="sig"></span>
+              <div class="sigbox">
+                <canvas id="sig"></canvas>
+                <div class="hint"><span data-i18n="sigHint"></span></div>
+              </div>
+              <div class="padtools">
+                <div class="err" id="sigErr"></div>
+                <button type="button" class="btn sm" id="clear" data-i18n="clear"></button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="ansvarig"><span data-i18n="ansv"></span> <span class="opt" data-i18n="ansvOpt"></span></label>
+              <div class="inp"><svg class="ico"><use href="#i-user"/></svg><input id="ansvarig" autocomplete="off"></div>
+            </div>
+            <div class="grid">
+              <div class="field"><label for="datum" data-i18n="datum"></label><div class="inp"><svg class="ico"><use href="#i-cal"/></svg><input id="datum" type="date"></div></div>
+              <div class="field"><label for="tid" data-i18n="tid"></label><div class="inp"><svg class="ico"><use href="#i-clock"/></svg><input id="tid" type="time"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" id="back" data-i18n="back"></button>
+          <button type="button" class="btn primary" id="save" data-i18n="save"></button>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </section>
+
+      <!-- PASO 3: listo -->
+      <section id="s3" class="view" hidden>
+        <div class="sheet">
+          <svg class="ico okmark" aria-hidden="true"><use href="#i-check"/></svg>
+          <header class="viewhead"><h1 data-i18n="done"></h1><p class="sub" data-i18n="doneMsg"></p></header>
+          <div class="actions">
+            <button type="button" class="btn" id="pdfOpen"><svg class="ico"><use href="#i-file"/></svg><span data-i18n="open"></span></button>
+            <button type="button" class="btn primary" id="again" data-i18n="again"></button>
+          </div>
+          <p class="status" id="dstatus" role="status"></p>
+        </div>
+      </section>
+
+      <!-- PDF guardados: cada usuario ve los suyos; el administrador, todos -->
+      <section id="s4" class="view" hidden>
+        <header class="viewhead"><h1 data-i18n="hist"></h1><p class="sub" id="scopeNote"></p></header>
+        <div class="toolbar">
+          <div class="field">
+            <label for="hq" data-i18n="search"></label>
+            <div class="inp"><svg class="ico"><use href="#i-search"/></svg><input id="hq" type="search" autocomplete="off"></div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn" id="hrefresh"><svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="refresh"></span></button>
+            <button type="button" class="btn primary" id="hback" data-i18n="again"></button>
+          </div>
+        </div>
+        <p class="status" id="hstatus" role="status"></p>
+        <ul class="rows" id="hlist"></ul>
+      </section>
+
+      <!-- Usuarios (solo administrador) -->
+      <section id="s5" class="view" hidden>
+        <header class="viewhead"><h1 data-i18n="usersBtn"></h1><p class="sub" data-i18n="usersNote"></p></header>
+        <div class="actions" style="margin-top:0">
+          <button type="button" class="btn" id="urefresh"><svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="refresh"></span></button>
+          <button type="button" class="btn primary" id="uback" data-i18n="again"></button>
+        </div>
+        <p class="status" id="ustatus" role="status"></p>
+        <ul class="rows" id="ulist"></ul>
+      </section>
+
+    </main>
   </div>
-  <div class="updbar" id="srvWarn" hidden><span data-i18n="srvOld"></span></div>
-
-  <!-- barra de sesión (solo con sesión iniciada) -->
-  <div class="toplinks" id="toplinks" hidden>
-    <span class="who" id="who"></span>
-    <button type="button" class="lnk" id="newBtn" data-i18n="newOrder"></button>
-    <button type="button" class="lnk" id="histBtn" data-i18n="hist"></button>
-    <button type="button" class="lnk" id="usersBtn" data-i18n="usersBtn" hidden></button>
-    <a class="folder" id="folderLink" href="#" target="_blank" rel="noopener" hidden data-i18n="folder"></a>
-    <button type="button" class="lnk" id="logoutBtn" data-i18n="logout"></button>
-  </div>
-
-  <!-- ACCESO -->
-  <section id="sA" class="panel">
-    <div class="tabs seg" role="group" id="tabs">
-      <button type="button" data-mode="login" aria-pressed="true" data-i18n="tabLogin"></button>
-      <button type="button" data-mode="register" aria-pressed="false" data-i18n="tabReg"></button>
-      <button type="button" data-mode="admin" aria-pressed="false" data-i18n="tabAdmin"></button>
-    </div>
-    <form id="aForm" novalidate>
-      <p class="note" id="aHint" hidden data-i18n="hintReg"></p>
-      <div class="field" id="g_code" hidden>
-        <label for="a_code" data-i18n="fUserCode"></label>
-        <input id="a_code" type="password" autocomplete="off">
-      </div>
-      <div class="field" id="g_name" hidden>
-        <label for="a_name" data-i18n="fFullName"></label>
-        <input id="a_name" autocomplete="name" maxlength="80">
-      </div>
-      <div class="field" id="g_user">
-        <label for="a_user" data-i18n="fUser"></label>
-        <input id="a_user" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30">
-      </div>
-      <div class="field" id="g_pass">
-        <label for="a_pass" data-i18n="fPass"></label>
-        <input id="a_pass" type="password" autocomplete="current-password" maxlength="100">
-      </div>
-      <div class="field" id="g_pass2" hidden>
-        <label for="a_pass2" data-i18n="fPass2"></label>
-        <input id="a_pass2" type="password" autocomplete="new-password" maxlength="100">
-      </div>
-      <div class="field" id="g_admin" hidden>
-        <label for="a_admin" data-i18n="fAdminCode"></label>
-        <input id="a_admin" type="password" autocomplete="off">
-      </div>
-      <div class="actions">
-        <button type="submit" class="primary" id="aGo" data-i18n="bLogin"></button>
-      </div>
-      <p class="status" id="astatus" role="status"></p>
-    </form>
-  </section>
-
-  <ol class="steps" id="steps" hidden>
-    <li id="st1" class="on" data-i18n="st1"></li>
-    <li id="st2" data-i18n="st2"></li>
-    <li id="st3" data-i18n="st3"></li>
-  </ol>
-
-  <!-- PASO 1: datos -->
-  <section id="s1" class="panel" hidden>
-    <form id="form" novalidate></form>
-    <div class="actions">
-      <button type="button" class="primary" id="toSign" data-i18n="next"></button>
-    </div>
-  </section>
-
-  <!-- PASO 2: firma del responsable -->
-  <section id="s2" class="panel" hidden>
-    <p class="handoff" data-i18n="handoff"></p>
-    <dl class="sum" id="sum"></dl>
-
-    <div class="field">
-      <span class="lbl" data-i18n="sig"></span>
-      <div class="sigbox">
-        <canvas id="sig"></canvas>
-        <div class="hint"><span data-i18n="sigHint"></span></div>
-      </div>
-      <div class="err" id="sigErr"></div>
-    </div>
-
-    <div class="field">
-      <label for="ansvarig"><span data-i18n="ansv"></span> <span class="opt" data-i18n="ansvOpt"></span></label>
-      <input id="ansvarig" autocomplete="off">
-    </div>
-    <div class="row2">
-      <div class="field"><label for="datum" data-i18n="datum"></label><input id="datum" type="date"></div>
-      <div class="field"><label for="tid" data-i18n="tid"></label><input id="tid" type="time"></div>
-    </div>
-
-    <div class="actions">
-      <button type="button" id="back" data-i18n="back"></button>
-      <button type="button" id="clear" data-i18n="clear"></button>
-      <button type="button" class="primary" id="save" data-i18n="save"></button>
-    </div>
-    <p class="status" id="status" role="status"></p>
-  </section>
-
-  <!-- PASO 3: listo -->
-  <section id="s3" class="panel" hidden>
-    <p class="done-mark" data-i18n="done"></p>
-    <p data-i18n="doneMsg"></p>
-    <div class="actions"><button type="button" id="pdfOpen" data-i18n="open"></button></div>
-    <p class="status" id="dstatus" role="status"></p>
-    <div class="actions"><button type="button" class="primary" id="again" data-i18n="again"></button></div>
-  </section>
-
-  <!-- HISTORIAL: PDF guardados (cada usuario ve los suyos; el administrador, todos) -->
-  <section id="s4" class="panel" hidden>
-    <p class="note" id="scopeNote"></p>
-    <div class="field">
-      <label for="hq" data-i18n="search"></label>
-      <input id="hq" type="search" autocomplete="off">
-    </div>
-    <div class="actions">
-      <button type="button" id="hrefresh" data-i18n="refresh"></button>
-      <button type="button" class="primary" id="hback" data-i18n="again"></button>
-    </div>
-    <p class="status" id="hstatus" role="status"></p>
-    <ul class="hist" id="hlist"></ul>
-  </section>
-
-  <!-- USUARIOS (solo administrador) -->
-  <section id="s5" class="panel" hidden>
-    <p class="note" data-i18n="usersNote"></p>
-    <div class="actions">
-      <button type="button" id="urefresh" data-i18n="refresh"></button>
-      <button type="button" class="primary" id="uback" data-i18n="again"></button>
-    </div>
-    <p class="status" id="ustatus" role="status"></p>
-    <ul class="hist" id="ulist"></ul>
-  </section>
-
-  <footer>
-    <span data-i18n="footer"></span>
-    <div class="ver" id="ver">
-      <span id="verText"></span> ·
-      <button type="button" class="lnk" id="verCheck" data-i18n="verCheck"></button>
-      <p class="status" id="verMsg" role="status"></p>
-    </div>
-  </footer>
 </div>
 
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const APP_VERSION = '1.7.0';          // sube este número en cada cambio de index.html
+const APP_VERSION = '1.8.0';          // sube este número en cada cambio de index.html
 const EXPECTED_SERVER = '1.7.0';     // versión de Code.gs que necesita esta app
 const FIELDS = [
-  {id:'namn', type:'text', req:true, ac:'name'},
-  {id:'hsa', req:true, ac:'off'},
-  {id:'telefon', type:'tel', req:true, ac:'tel'},
-  {id:'epost', type:'email', req:true, ac:'email'},
-  {id:'avdelning', req:true, ac:'off'},
-  {id:'kostnadsstalle', req:false, ac:'off'},
-  {id:'rumsnummer', req:true, ac:'off'},
-  {id:'karmnummer', req:false, ac:'off'}
+  {id:'namn', type:'text', req:true, ac:'name', icon:'user', grp:'who'},
+  {id:'hsa', req:true, ac:'off', icon:'id', grp:'who'},
+  {id:'telefon', type:'tel', req:true, ac:'tel', icon:'phone', grp:'who'},
+  {id:'epost', type:'email', req:true, ac:'email', icon:'mail', grp:'who'},
+  {id:'avdelning', req:true, ac:'off', icon:'building', grp:'who'},
+  {id:'kostnadsstalle', req:false, ac:'off', icon:'coins', grp:'who'},
+  {id:'rumsnummer', req:true, ac:'off', icon:'door', grp:'where'},
+  {id:'karmnummer', req:false, ac:'off', icon:'frame', grp:'where'}
 ];
+const GROUPS = [{id:'who', key:'g_who'}, {id:'where', key:'g_where'}];
 const REMEMBER = ['namn','hsa','telefon','epost','avdelning','kostnadsstalle'];
 const STORE_KEY = 'extra-bestallning-v1';
 const SESSION_KEY = 'extra-bestallning-session';
@@ -283,10 +518,11 @@ const $ = s => document.querySelector(s);
 /* ---------- idioma de la interfaz (el PDF siempre sale en sueco) ---------- */
 const I18N = {
   sv: {
-    sub:'Vänligen fyll i alla uppgifter tydligt. Tack!',
+    sub:'Vänligen fyll i alla uppgifter tydligt. Tack!', authSub:'Logga in för att skicka en beställning.',
     st1:'1 Uppgifter', st2:'2 Underskrift', st3:'3 Klart',
-    f_namn:'NAMN', f_hsa:'HSA-ID', f_telefon:'TELEFON', f_epost:'E-POST', f_avdelning:'AVDELNING',
-    f_kostnadsstalle:'KOSTNADSSTÄLLE', f_rumsnummer:'RUMSNUMMER', f_karmnummer:'KARMNUMMER', f_bestallning:'BESTÄLLNING',
+    g_who:'Beställare', g_where:'Plats', g_order:'Beställning', h_sign:'Underskrift',
+    f_namn:'Namn', f_hsa:'HSA-ID', f_telefon:'Telefon', f_epost:'E-post', f_avdelning:'Avdelning',
+    f_kostnadsstalle:'Kostnadsställe', f_rumsnummer:'Rumsnummer', f_karmnummer:'Karmnummer', f_bestallning:'Beställning',
     opt:'(valfritt)', orderHint:'',
     next:'Gå till underskrift',
     handoff:'Lämna enheten till ansvarig person, som granskar uppgifterna och skriver under med fingret.',
@@ -295,7 +531,7 @@ const I18N = {
     datum:'Datum', tid:'Tid',
     back:'Tillbaka', clear:'Rensa', save:'Spara PDF',
     done:'Sparad', doneMsg:'PDF:en sparades i Drive och beställningen registrerades i Google Sheets.',
-    open:'Öppna PDF', folder:'Öppna PDF-mappen i Drive', again:'Ny beställning',
+    open:'Öppna PDF', folder:'PDF-mappen i Drive', again:'Ny beställning',
     hist:'Sparade PDF', search:'Sök på namn, rum eller datum', refresh:'Uppdatera',
     loading:'Hämtar…', empty:'Inga sparade beställningar.', hErr:'Kunde inte hämta: ',
     popup:'Tryck här för att öppna PDF:en', openBtn:'Öppna',
@@ -308,16 +544,16 @@ const I18N = {
     notSaved:'Sparades inte: ', unknown:'okänt fel',
     offline:'Ingen kontakt med servern. Kontrollera internet och försök igen.',
     /* konton */
-    tabLogin:'Logga in', tabReg:'Skapa användare', tabAdmin:'Administratör',
+    tabLogin:'Logga in', tabReg:'Ny användare', tabAdmin:'Admin',
     fUserCode:'Registreringskod', fFullName:'Fullständigt namn', fUser:'Användarnamn', fPass:'Lösenord',
     fPass2:'Upprepa lösenord', fAdminCode:'Administratörskod',
     bLogin:'Logga in', bReg:'Skapa användare', bAdmin:'Logga in som administratör',
     hintReg:'Du får registreringskoden av administratören. Lösenordet ska ha minst 6 tecken.',
-    hello:'Hej, ', adminTag:'administratör', logout:'Logga ut', newOrder:'Ny beställning', usersBtn:'Användare',
+    adminTag:'Administratör', logout:'Logga ut', newOrder:'Ny beställning', usersBtn:'Användare',
     scopeUser:'Här ser du bara dina egna PDF.', scopeAdmin:'Administratör: du ser alla användares PDF.',
     usersNote:'Ta bort en användare om personen glömt sitt lösenord. Då kan hen skapa användaren på nytt. Tidigare PDF finns kvar och hör till användarnamnet.',
     deleteBtn:'Ta bort', confirmBtn:'Bekräfta', created:'skapad', noUsers:'Inga användare.',
-    eFill:'Fyll i alla fält.', eMatch:'Lösenorden matchar inte.', welcome:'',
+    eFill:'Fyll i alla fält.', eMatch:'Lösenorden matchar inte.',
     err_BAD_REG_CODE:'Fel registreringskod.', err_BAD_LOGIN:'Fel användarnamn eller lösenord.',
     err_BAD_ADMIN:'Fel administratörskod.', err_THROTTLED:'För många försök. Vänta 10 minuter.',
     err_USER_EXISTS:'Användarnamnet är upptaget.',
@@ -326,6 +562,9 @@ const I18N = {
     err_NO_CONFIG:'Servern saknar koder (ADMIN_CODE / USER_CODE).',
     err_AUTH:'Sessionen har gått ut. Logga in igen.', err_NOT_FOUND:'Filen hittades inte.',
     err_FORBIDDEN:'Endast administratör.',
+    /* meny och installation */
+    menu:'Meny', close:'Stäng', navLabel:'Huvudmeny',
+    install:'Installera appen', installIos:'Tryck på Dela och välj Lägg till på hemskärmen.',
     /* version */
     verApp:'App', verSrv:'Server', verCheck:'Sök uppdatering', verChecking:'Kontrollerar…',
     verOk:'Du har den senaste versionen.', updBtn:'Uppdatera',
@@ -333,12 +572,13 @@ const I18N = {
     srvOld:'Servern (Apps Script) är föråldrad. Klistra in den nya Code.gs och skapa en ny version.', old:'föråldrad'
   },
   es: {
-    sub:'Rellena todos los datos con claridad. ¡Gracias!',
+    sub:'Rellena todos los datos con claridad. ¡Gracias!', authSub:'Entra para enviar un pedido.',
     st1:'1 Datos', st2:'2 Firma', st3:'3 Listo',
-    f_namn:'NOMBRE (NAMN)', f_hsa:'ID HSA (HSA-ID)', f_telefon:'TELÉFONO (TELEFON)', f_epost:'CORREO (E-POST)',
-    f_avdelning:'DEPARTAMENTO (AVDELNING)', f_kostnadsstalle:'CENTRO DE COSTE (KOSTNADSSTÄLLE)',
-    f_rumsnummer:'N.º DE HABITACIÓN (RUMSNUMMER)', f_karmnummer:'N.º DE MARCO DE PUERTA (KARMNUMMER)',
-    f_bestallning:'PEDIDO (BESTÄLLNING)',
+    g_who:'Quién pide (Beställare)', g_where:'Lugar (Plats)', g_order:'Pedido (Beställning)', h_sign:'Firma (Underskrift)',
+    f_namn:'Nombre (Namn)', f_hsa:'ID HSA (HSA-ID)', f_telefon:'Teléfono (Telefon)', f_epost:'Correo (E-post)',
+    f_avdelning:'Departamento (Avdelning)', f_kostnadsstalle:'Centro de coste (Kostnadsställe)',
+    f_rumsnummer:'N.º de habitación (Rumsnummer)', f_karmnummer:'N.º de marco de puerta (Karmnummer)',
+    f_bestallning:'Pedido (Beställning)',
     opt:'(opcional)', orderHint:'Escribe el pedido en sueco: este texto aparece tal cual en el PDF.',
     next:'Ir a la firma',
     handoff:'Pasa el dispositivo al responsable para que revise los datos y firme con el dedo.',
@@ -347,7 +587,7 @@ const I18N = {
     datum:'Fecha (Datum)', tid:'Hora (Tid)',
     back:'Atrás', clear:'Borrar', save:'Guardar PDF',
     done:'Guardado', doneMsg:'El PDF se guardó en Drive y el pedido quedó registrado en Google Sheets. El PDF está en sueco.',
-    open:'Abrir PDF', folder:'Abrir carpeta de PDFs en Drive', again:'Nuevo pedido',
+    open:'Abrir PDF', folder:'Carpeta de PDF en Drive', again:'Nuevo pedido',
     hist:'PDF guardados', search:'Buscar por nombre, habitación o fecha', refresh:'Actualizar',
     loading:'Cargando…', empty:'No hay pedidos guardados.', hErr:'No se pudo cargar: ',
     popup:'Toca aquí para abrir el PDF', openBtn:'Abrir',
@@ -360,16 +600,16 @@ const I18N = {
     notSaved:'No se guardó: ', unknown:'error desconocido',
     offline:'Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.',
     /* cuentas */
-    tabLogin:'Entrar', tabReg:'Crear usuario', tabAdmin:'Administrador',
+    tabLogin:'Entrar', tabReg:'Nuevo usuario', tabAdmin:'Admin',
     fUserCode:'Código de usuarios', fFullName:'Nombre completo', fUser:'Usuario', fPass:'Contraseña',
     fPass2:'Repetir contraseña', fAdminCode:'Código de administrador',
     bLogin:'Entrar', bReg:'Crear usuario', bAdmin:'Entrar como administrador',
     hintReg:'El administrador te da el código de usuarios. La contraseña debe tener 6 caracteres como mínimo.',
-    hello:'Hola, ', adminTag:'administrador', logout:'Salir', newOrder:'Nuevo pedido', usersBtn:'Usuarios',
+    adminTag:'Administrador', logout:'Salir', newOrder:'Nuevo pedido', usersBtn:'Usuarios',
     scopeUser:'Aquí solo ves tus propios PDF.', scopeAdmin:'Administrador: ves los PDF de todos los usuarios.',
     usersNote:'Elimina un usuario si olvidó su contraseña: así podrá crearse el usuario de nuevo. Sus PDF anteriores se conservan y siguen asociados a su nombre de usuario.',
     deleteBtn:'Eliminar', confirmBtn:'Confirmar', created:'creado', noUsers:'No hay usuarios.',
-    eFill:'Completa todos los campos.', eMatch:'Las contraseñas no coinciden.', welcome:'',
+    eFill:'Completa todos los campos.', eMatch:'Las contraseñas no coinciden.',
     err_BAD_REG_CODE:'Código de usuarios incorrecto.', err_BAD_LOGIN:'Usuario o contraseña incorrectos.',
     err_BAD_ADMIN:'Código de administrador incorrecto.', err_THROTTLED:'Demasiados intentos. Espera 10 minutos.',
     err_USER_EXISTS:'Ese usuario ya existe.',
@@ -378,6 +618,9 @@ const I18N = {
     err_NO_CONFIG:'Al servidor le faltan los códigos (ADMIN_CODE / USER_CODE).',
     err_AUTH:'La sesión caducó. Vuelve a entrar.', err_NOT_FOUND:'Archivo no encontrado.',
     err_FORBIDDEN:'Solo el administrador.',
+    /* menú e instalación */
+    menu:'Menú', close:'Cerrar', navLabel:'Menú principal',
+    install:'Instalar la app', installIos:'Toca Compartir y elige Añadir a pantalla de inicio.',
     /* versión */
     verApp:'App', verSrv:'Servidor', verCheck:'Buscar actualización', verChecking:'Comprobando…',
     verOk:'Tienes la última versión.', updBtn:'Actualizar',
@@ -394,15 +637,18 @@ const t = k => I18N[LANG][k];
 function applyLang(){
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{ el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
   $('#sig').setAttribute('aria-label', t('sigAria'));
   const hint = $('#orderHint'); if(hint) hint.hidden = !t('orderHint');
   document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   document.querySelectorAll('.field.bad').forEach(e=>e.classList.remove('bad'));
   document.querySelectorAll('.field .err').forEach(e=>{ e.textContent = ''; });
   $('#sigErr').textContent = '';
-  ['#status','#astatus','#hstatus','#ustatus','#dstatus'].forEach(s=>setMsg(s,''));
-  updateBar();
+  ['#status','#astatus','#hstatus','#ustatus','#dstatus','#navMsg'].forEach(s=>setMsg(s,''));
+  setVerMsg('');
+  updateNav();
   renderVer();
+  $('#scopeNote').textContent = t(isAdmin() ? 'scopeAdmin' : 'scopeUser');
   if(current && !$('#s2').hidden) renderSummary();
   if(!$('#s4').hidden) renderHistory();
   if(!$('#s5').hidden) renderUsers();
@@ -440,6 +686,29 @@ function setMsg(sel, msg, isErr){
   const s = $(sel); if(!s) return;
   s.textContent = msg; s.className = 'status' + (isErr ? ' error' : '');
 }
+
+/* ---------- menú lateral ---------- */
+const mqDesk = window.matchMedia ? window.matchMedia('(min-width: 900px)') : {matches:true};
+function navIsOpen(){ return document.body.classList.contains('nav-open'); }
+function openNav(){
+  document.body.classList.add('nav-open');
+  $('#menuBtn').setAttribute('aria-expanded', 'true');
+  if(!mqDesk.matches) $('#main').inert = true;      // el foco se queda dentro del menú
+  const first = $('#nav .navitem:not([hidden])');
+  if(first) setTimeout(()=>first.focus(), 60);
+}
+function closeNav(returnFocus){
+  if(!navIsOpen()) return;
+  document.body.classList.remove('nav-open');
+  $('#menuBtn').setAttribute('aria-expanded', 'false');
+  $('#main').inert = false;
+  if(returnFocus) $('#menuBtn').focus();
+}
+$('#menuBtn').addEventListener('click', ()=> navIsOpen() ? closeNav(true) : openNav());
+$('#navClose').addEventListener('click', ()=>closeNav(true));
+$('#scrim').addEventListener('click', ()=>closeNav(false));
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeNav(true); });
+if(mqDesk.addEventListener) mqDesk.addEventListener('change', ()=>closeNav(false));
 
 /* ---------- pantalla de acceso ---------- */
 let authMode = 'login';
@@ -493,18 +762,22 @@ function logout(){
   document.querySelectorAll('#form input, #form textarea').forEach(el=>{ el.value = ''; });
   $('#ansvarig').value = ''; $('#hq').value = '';
   $('#hlist').innerHTML = ''; $('#ulist').innerHTML = '';
-  updateBar();
+  closeNav(false);
+  updateNav();
   showView('sA');
 }
 $('#logoutBtn').addEventListener('click', ()=>{ logout(); });
 
 function isAdmin(){ return !!session && session.role === 'admin'; }
-function updateBar(){
-  $('#toplinks').hidden = !session;
+function updateNav(){
+  document.body.dataset.auth = session ? 'in' : 'out';
   if(!session) return;
-  $('#who').innerHTML = esc(t('hello') + session.name) + (isAdmin() ? `<small>${esc(t('adminTag'))}</small>` : '');
+  $('#who').innerHTML = `<span class="avatar" aria-hidden="true">${esc(initials(session.name).slice(0,2))}</span>` +
+    `<span class="whotxt"><span class="whoname">${esc(session.name)}</span>` +
+    (isAdmin() ? `<span class="chip">${esc(t('adminTag'))}</span>` : '') + `</span>`;
   $('#usersBtn').hidden = !isAdmin();
   showFolderLinks();
+  updateInstall();
 }
 function folderUrl(){
   if(!isAdmin()) return '';
@@ -515,13 +788,15 @@ function showFolderLinks(){
   a.hidden = !u; if(u) a.href = u;
 }
 function enterApp(){
-  updateBar();
+  updateNav();
   loadRemembered();
   showView('s1');
 }
 
 /* ---------- vistas ---------- */
 const VIEWS = ['sA','s1','s2','s3','s4','s5'];
+const NAVMAP = {s1:'newBtn', s2:'newBtn', s3:'newBtn', s4:'histBtn', s5:'usersBtn'};
+let booted = false;
 function showView(id){
   VIEWS.forEach(v=>{ $('#'+v).hidden = v !== id; });
   const n = {s1:1, s2:2, s3:3}[id] || 0;
@@ -531,27 +806,43 @@ function showView(id){
     el.classList.toggle('on', i+1 === n);
     el.classList.toggle('done', !!n && i+1 < n);
   });
+  ['newBtn','histBtn','usersBtn'].forEach(bid=>{
+    const el = $('#'+bid);
+    if(NAVMAP[id] === bid) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+  });
+  closeNav(false);
   window.scrollTo(0,0);
-  if(id === 's2') setupPad();
+  if(id === 's2') setupPad(false);
+  if(booted){                                      // el foco pasa al título para quien usa lector de pantalla
+    const h = $('#'+id+' h1');
+    if(h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+  }
   if(pendingVersion && !isBusy()) applyUpdate();
 }
 
 /* ---------- formulario ---------- */
 function storeKey(){ return STORE_KEY + ':' + (session ? session.user : ''); }
+function fieldHtml(x){
+  return `<div class="field" id="f_${x.id}">
+    <label for="${x.id}"><span data-i18n="f_${x.id}"></span>${x.req?'':' <span class="opt" data-i18n="opt"></span>'}</label>
+    <div class="inp"><svg class="ico" aria-hidden="true"><use href="#i-${x.icon}"/></svg>
+    <input id="${x.id}" type="${x.type||'text'}" autocomplete="${x.ac}" maxlength="120"></div>
+    <div class="err"></div></div>`;
+}
 function buildForm(){
-  const f = $('#form');
   let html = '';
-  FIELDS.forEach(x=>{
-    html += `<div class="field" id="f_${x.id}">
-      <label for="${x.id}"><span data-i18n="f_${x.id}"></span>${x.req?'':' <span class="opt" data-i18n="opt"></span>'}</label>
-      <input id="${x.id}" type="${x.type||'text'}" autocomplete="${x.ac}" maxlength="120">
-      <div class="err"></div></div>`;
+  GROUPS.forEach(g=>{
+    html += `<fieldset class="grp"><legend data-i18n="${g.key}"></legend><div class="grid">` +
+      FIELDS.filter(x=>x.grp === g.id).map(fieldHtml).join('') + `</div></fieldset>`;
   });
-  html += `<div class="field" id="f_bestallning">
-      <label for="bestallning" data-i18n="f_bestallning"></label>
-      <textarea id="bestallning" maxlength="500"></textarea>
+  html += `<fieldset class="grp"><legend data-i18n="g_order"></legend>
+    <div class="field" id="f_bestallning">
+      <label for="bestallning" class="sr-only" data-i18n="f_bestallning"></label>
+      <div class="inp ta"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>
+      <textarea id="bestallning" maxlength="500"></textarea></div>
       <div class="note" id="orderHint" data-i18n="orderHint"></div>
-      <div class="err"></div></div>`;
+      <div class="err"></div></div></fieldset>`;
+  const f = $('#form');
   f.innerHTML = html;
   f.addEventListener('submit', e=>e.preventDefault());
 }
@@ -629,18 +920,32 @@ $('#uback').addEventListener('click', newOrder);
 /* ---------- firma ---------- */
 const pad = {ctx:null, drawing:false, ink:false, dpr:1, b:null};
 function resetBounds(){ pad.b = {x0:1e9,y0:1e9,x1:-1,y1:-1}; }
-function setupPad(){
+// keep = true: al girar el dispositivo o cambiar el tamaño de la ventana se conserva la firma ya hecha
+function setupPad(keep){
   const c = $('#sig');
+  let snap = null, oldW = 0, oldH = 0;
+  if(keep && pad.ink && c.width){
+    snap = document.createElement('canvas'); snap.width = c.width; snap.height = c.height;
+    snap.getContext('2d').drawImage(c, 0, 0);
+    oldW = c.width / pad.dpr; oldH = c.height / pad.dpr;
+  }
+  const kept = snap ? pad.b : null;
   const r = c.getBoundingClientRect();
   pad.dpr = Math.max(1, window.devicePixelRatio || 1);
   c.width = Math.round(r.width*pad.dpr);
   c.height = Math.round(r.height*pad.dpr);
   const x = c.getContext('2d');
   x.setTransform(pad.dpr,0,0,pad.dpr,0,0);
-  x.lineWidth = 2.6; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#111';
-  pad.ctx = x; pad.ink = false; resetBounds();
+  x.lineWidth = 2.8; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0D132D';
+  pad.ctx = x;
+  if(snap){ x.drawImage(snap, 0, 0, oldW, oldH); pad.ink = true; pad.b = kept; }
+  else{ pad.ink = false; resetBounds(); }
   $('#sigErr').textContent = '';
 }
+let lastW = window.innerWidth;
+window.addEventListener('resize', ()=>{
+  if(window.innerWidth !== lastW){ lastW = window.innerWidth; if(!$('#s2').hidden) setupPad(true); }
+});
 function pos(e){
   const r = $('#sig').getBoundingClientRect();
   return {x:e.clientX-r.left, y:e.clientY-r.top};
@@ -674,7 +979,7 @@ function grow(p){
   c.addEventListener('pointerup', end);
   c.addEventListener('pointercancel', end);
   c.addEventListener('pointerleave', end);
-  $('#clear').addEventListener('click', setupPad);
+  $('#clear').addEventListener('click', ()=>setupPad(false));
 })();
 function signatureImage(){
   // recorta la firma a su caja de trazos
@@ -688,21 +993,39 @@ function signatureImage(){
   return {url:o.toDataURL('image/png'), w:w, h:h};
 }
 
+/* ---------- logo para el PDF ---------- */
+const logoImg = new Image();
+const logoReady = new Promise(res=>{ logoImg.onload = res; logoImg.onerror = res; });
+logoImg.src = 'assets/iss-logo.png';
+function getLogo(){
+  try{
+    if(!logoImg.complete || !logoImg.naturalWidth) return null;
+    const c = document.createElement('canvas');
+    c.width = logoImg.naturalWidth; c.height = logoImg.naturalHeight;
+    c.getContext('2d').drawImage(logoImg, 0, 0);
+    return {url:c.toDataURL('image/png'), w:c.width, h:c.height};
+  }catch(e){ return null; }
+}
+
 /* ---------- PDF (siempre en sueco, independiente del idioma de la interfaz) ---------- */
-function buildPdf(d, sig){
+function buildPdf(d, sig, logo){
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'mm', format:'a4'});
   const L = 18, R = 192, X = 72;
-  const NAVY = [6, 40, 73];                       // azul ISS (aprox.)
+  const NAVY = [13, 19, 45];                      // azul del logo ISS
   const navy = ()=>{ doc.setTextColor(NAVY[0],NAVY[1],NAVY[2]); doc.setDrawColor(NAVY[0],NAVY[1],NAVY[2]); };
   const black = ()=>doc.setTextColor(0,0,0);
-  const grey = ()=>doc.setDrawColor(130,142,155);
+  const grey = ()=>doc.setDrawColor(130,138,160);
 
   navy(); doc.setFillColor(NAVY[0],NAVY[1],NAVY[2]);
   doc.rect(0, 0, 210, 6, 'F');                    // franja superior
+  if(logo){                                       // logo arriba a la derecha
+    const lw = 27, lh = lw * logo.h / logo.w;
+    doc.addImage(logo.url, 'PNG', R - lw, 12, lw, lh);
+  }
   doc.setFont('helvetica','bold'); doc.setFontSize(26);
   doc.text('EXTRA BESTÄLLNING', L, 26);
-  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(70,82,95);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(70,78,100);
   doc.text('Vänligen fyll i alla uppgifter tydligt. Tack!', L, 33);
   navy(); doc.setLineWidth(0.6); doc.line(L, 38, R, 38);
 
@@ -804,7 +1127,7 @@ function renderHistory(){
   ul.innerHTML = rows.map(it=>`<li>
     <div class="hi"><b>${esc(histLabel(it))}</b>
       <span>${esc(it.namn)} · ${esc(it.rum)}${it.avd ? ' · ' + esc(it.avd) : ''}${it.usr ? ' · @' + esc(it.usr) : ''}</span></div>
-    <button type="button" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button></li>`).join('');
+    <button type="button" class="btn sm" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button></li>`).join('');
 }
 function loadHistory(){
   if(!apiUrl()){ setMsg('#hstatus', t('eUrl'), true); return; }
@@ -831,7 +1154,7 @@ function renderUsers(){
   if(!usersData.length){ ul.innerHTML = $('#ustatus').textContent ? '' : `<li><span class="note">${esc(t('noUsers'))}</span></li>`; return; }
   ul.innerHTML = usersData.map(u=>`<li>
     <div class="hi"><b>@${esc(u.user)}</b><span>${esc(u.name)} · ${esc(t('created'))} ${esc(u.created)}</span></div>
-    <button type="button" data-u="${esc(u.user)}">${esc(t('deleteBtn'))}</button></li>`).join('');
+    <button type="button" class="btn sm" data-u="${esc(u.user)}">${esc(t('deleteBtn'))}</button></li>`).join('');
 }
 function loadUsers(){
   setMsg('#ustatus', t('loading')); $('#ulist').innerHTML = '';
@@ -872,25 +1195,46 @@ $('#save').addEventListener('click', ()=>{
   });
   const btn = $('#save'); btn.disabled = true;
   setMsg('#status', t('mkPdf'));
-  let payload;
-  try{
-    const doc = buildPdf(d, signatureImage());
-    const b64 = doc.output('datauristring').split(',')[1];
-    payload = {fields:d, fileName:fileNameFor(d), pdfBase64:b64};
-  }catch(err){
-    btn.disabled = false; setMsg('#status', t('ePdf') + err.message, true); return;
-  }
-  setMsg('#status', t('saving'));
-  api(payload).then(res=>{
-    btn.disabled = false;
-    if(!res.ok){ setMsg('#status', t('notSaved') + errText(res), true); return; }
-    lastSavedId = res.fileId || '';
-    try{ if(res.folder) localStorage.setItem(FOLDER_KEY, res.folder); }catch(e){}
-    showFolderLinks();
-    setMsg('#dstatus','');
-    showView('s3');
-  }).catch(err=>{ btn.disabled = false; setMsg('#status', errText(err), true); });
+  logoReady.then(()=>{
+    let payload;
+    try{
+      const doc = buildPdf(d, signatureImage(), getLogo());
+      const b64 = doc.output('datauristring').split(',')[1];
+      payload = {fields:d, fileName:fileNameFor(d), pdfBase64:b64};
+    }catch(err){
+      btn.disabled = false; setMsg('#status', t('ePdf') + err.message, true); return;
+    }
+    setMsg('#status', t('saving'));
+    return api(payload).then(res=>{
+      btn.disabled = false;
+      if(!res.ok){ setMsg('#status', t('notSaved') + errText(res), true); return; }
+      lastSavedId = res.fileId || '';
+      try{ if(res.folder) localStorage.setItem(FOLDER_KEY, res.folder); }catch(e){}
+      showFolderLinks();
+      setMsg('#dstatus','');
+      showView('s3');
+    }).catch(err=>{ btn.disabled = false; setMsg('#status', errText(err), true); });
+  });
 });
+
+/* ---------- instalar como app (acceso directo en móvil y escritorio) ---------- */
+let deferredInstall = null;
+function isStandalone(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function updateInstall(){ $('#installBtn').hidden = isStandalone() || !(deferredInstall || isIOS()); }
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredInstall = e; updateInstall(); });
+window.addEventListener('appinstalled', ()=>{ deferredInstall = null; updateInstall(); });
+$('#installBtn').addEventListener('click', ()=>{
+  if(deferredInstall){
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(()=>{}, ()=>{}).then(()=>{ deferredInstall = null; updateInstall(); });
+  }else{
+    setMsg('#navMsg', t('installIos'));
+  }
+});
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 
 /* ---------- versión y actualización automática ---------- */
 let pendingVersion = '';
@@ -906,11 +1250,14 @@ function isBusy(){
   return false;
 }
 function goTo(url){ location.replace(url); }
+function setVerMsg(msg, isErr){
+  ['#verMsg','#verMsg2'].forEach(sel=>{ const el = $(sel); if(el){ el.textContent = msg; el.style.color = isErr ? '' : ''; } });
+}
 function renderVer(){
   const outdated = !!serverVersion && serverVersion !== EXPECTED_SERVER;
-  $('#vtag').textContent = 'v' + APP_VERSION;
-  $('#verText').textContent = `${t('verApp')} v${APP_VERSION} · ${t('verSrv')} ${serverVersion ? 'v' + serverVersion : '—'}` + (outdated ? ` (${t('old')})` : '');
-  $('#ver').classList.toggle('old', outdated);
+  const txt = `${t('verApp')} v${APP_VERSION} · ${t('verSrv')} ${serverVersion ? 'v' + serverVersion : '—'}` + (outdated ? ` (${t('old')})` : '');
+  $('#verText').textContent = txt; $('#verText2').textContent = txt;
+  $('#ver').classList.toggle('old', outdated); $('#ver2').classList.toggle('old', outdated);
   $('#srvWarn').hidden = !(outdated && isAdmin());
   if(pendingVersion) $('#updText').textContent = t('updText') + pendingVersion;
 }
@@ -927,7 +1274,7 @@ function applyUpdate(){
   if(!pendingVersion) return;
   if(new URLSearchParams(location.search).get('v') === pendingVersion){
     // ya se intentó con esta versión y el servidor aún entrega la anterior: no entrar en bucle
-    setMsg('#verMsg', t('updWait'), true);
+    setVerMsg(t('updWait'), true);
     return;
   }
   const u = new URL(location.href);
@@ -935,7 +1282,7 @@ function applyUpdate(){
   goTo(u.toString());
 }
 function checkUpdate(manual){
-  if(manual) setMsg('#verMsg', t('verChecking'));
+  if(manual) setVerMsg(t('verChecking'));
   return latestVersion().then(v=>{
     if(v && v !== APP_VERSION){
       pendingVersion = v;
@@ -944,27 +1291,38 @@ function checkUpdate(manual){
       if(!isBusy()) applyUpdate();
     }else{
       pendingVersion = ''; $('#updbar').hidden = true;
-      if(manual) setMsg('#verMsg', t('verOk'));
+      if(manual) setVerMsg(t('verOk'));
     }
-  }).catch(()=>{ if(manual) setMsg('#verMsg', t('offline'), true); });
+  }).catch(()=>{ if(manual) setVerMsg(t('offline'), true); });
 }
 function checkServer(){
   if(!apiUrl()) return;
   fetch(apiUrl()).then(r=>r.json()).then(j=>{ serverVersion = (j && j.version) || '0'; renderVer(); }).catch(()=>{});
 }
 $('#updBtn').addEventListener('click', applyUpdate);
-$('#verCheck').addEventListener('click', ()=>{ checkServer(); checkUpdate(true); });
+['#verCheck','#verCheck2'].forEach(sel=>$(sel).addEventListener('click', ()=>{ checkServer(); checkUpdate(true); }));
 let lastCheck = 0;
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible' && Date.now() - lastCheck > 60000){ lastCheck = Date.now(); checkUpdate(false); checkServer(); }
 });
 setInterval(()=>{ lastCheck = Date.now(); checkUpdate(false); }, 5 * 60 * 1000);
 
+/* ---------- pantalla de logo ---------- */
+(function splash(){
+  const el = $('#splash'); if(!el) return;
+  if(document.documentElement.classList.contains('nosplash')){ el.remove(); return; }
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hide = ()=>{ el.classList.add('out'); setTimeout(()=>el.remove(), 500); };
+  const timer = setTimeout(hide, reduce ? 900 : 1800);
+  el.addEventListener('click', ()=>{ clearTimeout(timer); hide(); });
+})();
+
 /* ---------- arranque ---------- */
 buildForm();
 setAuthMode('login');
 applyLang();
 if(session && session.token) enterApp(); else showView('sA');
+booted = true;
 renderVer();
 lastCheck = Date.now(); checkUpdate(false); checkServer();
 </script>
