@@ -171,6 +171,7 @@
   @media (min-width:640px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .field{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
   .grid+.field,.field+.field,.field+.grid{margin-top:16px}
+  .grid>.field,.grid>.field+.field{margin-top:0}
   label,.lbl{font-weight:700;font-size:15px;line-height:1.3}
   .opt{font-weight:400;color:var(--muted);margin-left:4px}
   .inp{position:relative}
@@ -195,6 +196,7 @@
   .actions .primary{flex:1 1 220px}
   @media (min-width:900px){.actions .primary{flex:0 1 auto;min-width:260px}}
   .status{margin:14px 0 0;min-height:1.5em;color:var(--muted)}
+  .status:empty{margin:0;min-height:0}
   .status.error{color:var(--danger);font-weight:700}
   .status a{color:var(--navy);font-weight:700}
 
@@ -431,7 +433,7 @@
               </div>
             </div>
             <div class="field">
-              <label for="ansvarig"><span data-i18n="ansv"></span> <span class="opt" data-i18n="ansvOpt"></span></label>
+              <label for="ansvarig"><span data-i18n="ansv"></span></label>
               <div class="inp"><svg class="ico"><use href="#i-user"/></svg><input id="ansvarig" autocomplete="off"></div>
             </div>
             <div class="grid">
@@ -495,16 +497,16 @@
 <script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const APP_VERSION = '1.8.0';          // sube este número en cada cambio de index.html
-const EXPECTED_SERVER = '1.7.0';     // versión de Code.gs que necesita esta app
+const APP_VERSION = '1.8.1';          // sube este número en cada cambio de index.html
+const EXPECTED_SERVER = '1.8.1';     // versión de Code.gs que necesita esta app
 const FIELDS = [
-  {id:'namn', type:'text', req:true, ac:'name', icon:'user', grp:'who'},
-  {id:'hsa', req:true, ac:'off', icon:'id', grp:'who'},
-  {id:'telefon', type:'tel', req:true, ac:'tel', icon:'phone', grp:'who'},
-  {id:'epost', type:'email', req:true, ac:'email', icon:'mail', grp:'who'},
-  {id:'avdelning', req:true, ac:'off', icon:'building', grp:'who'},
+  {id:'namn', type:'text', req:false, ac:'name', icon:'user', grp:'who'},
+  {id:'hsa', req:false, ac:'off', icon:'id', grp:'who'},
+  {id:'telefon', type:'tel', req:false, ac:'tel', icon:'phone', grp:'who'},
+  {id:'epost', type:'email', req:false, ac:'email', icon:'mail', grp:'who'},
+  {id:'avdelning', req:false, ac:'off', icon:'building', grp:'who'},
   {id:'kostnadsstalle', req:false, ac:'off', icon:'coins', grp:'who'},
-  {id:'rumsnummer', req:true, ac:'off', icon:'door', grp:'where'},
+  {id:'rumsnummer', req:false, ac:'off', icon:'door', grp:'where'},
   {id:'karmnummer', req:false, ac:'off', icon:'frame', grp:'where'}
 ];
 const GROUPS = [{id:'who', key:'g_who'}, {id:'where', key:'g_where'}];
@@ -544,7 +546,7 @@ const I18N = {
     notSaved:'Sparades inte: ', unknown:'okänt fel',
     offline:'Ingen kontakt med servern. Kontrollera internet och försök igen.',
     /* konton */
-    tabLogin:'Logga in', tabReg:'Ny användare', tabAdmin:'Admin',
+    tabLogin:'Logga in', tabReg:'Registrera', tabAdmin:'Admin',
     fUserCode:'Registreringskod', fFullName:'Fullständigt namn', fUser:'Användarnamn', fPass:'Lösenord',
     fPass2:'Upprepa lösenord', fAdminCode:'Administratörskod',
     bLogin:'Logga in', bReg:'Skapa användare', bAdmin:'Logga in som administratör',
@@ -600,7 +602,7 @@ const I18N = {
     notSaved:'No se guardó: ', unknown:'error desconocido',
     offline:'Sin conexión con el servidor. Revisa internet e inténtalo de nuevo.',
     /* cuentas */
-    tabLogin:'Entrar', tabReg:'Nuevo usuario', tabAdmin:'Admin',
+    tabLogin:'Entrar', tabReg:'Registro', tabAdmin:'Admin',
     fUserCode:'Código de usuarios', fFullName:'Nombre completo', fUser:'Usuario', fPass:'Contraseña',
     fPass2:'Repetir contraseña', fAdminCode:'Código de administrador',
     bLogin:'Entrar', bReg:'Crear usuario', bAdmin:'Entrar como administrador',
@@ -824,7 +826,7 @@ function showView(id){
 function storeKey(){ return STORE_KEY + ':' + (session ? session.user : ''); }
 function fieldHtml(x){
   return `<div class="field" id="f_${x.id}">
-    <label for="${x.id}"><span data-i18n="f_${x.id}"></span>${x.req?'':' <span class="opt" data-i18n="opt"></span>'}</label>
+    <label for="${x.id}"><span data-i18n="f_${x.id}"></span></label>
     <div class="inp"><svg class="ico" aria-hidden="true"><use href="#i-${x.icon}"/></svg>
     <input id="${x.id}" type="${x.type||'text'}" autocomplete="${x.ac}" maxlength="120"></div>
     <div class="err"></div></div>`;
@@ -874,8 +876,7 @@ function validate(d){
     setErr(x.id, m);
     if(m && !first) first = x.id;
   });
-  setErr('bestallning', d.bestallning ? '' : t('eOrder'));
-  if(!d.bestallning && !first) first = 'bestallning';
+  setErr('bestallning', '');
   if(first){ $('#'+first).focus(); return false; }
   return true;
 }
@@ -923,6 +924,7 @@ function resetBounds(){ pad.b = {x0:1e9,y0:1e9,x1:-1,y1:-1}; }
 // keep = true: al girar el dispositivo o cambiar el tamaño de la ventana se conserva la firma ya hecha
 function setupPad(keep){
   const c = $('#sig');
+  if(keep && c.getBoundingClientRect().width < 100) return;   // ventana encogida un instante: no tocar la firma
   let snap = null, oldW = 0, oldH = 0;
   if(keep && pad.ink && c.width){
     snap = document.createElement('canvas'); snap.width = c.width; snap.height = c.height;
@@ -1126,7 +1128,7 @@ function renderHistory(){
   if(!rows.length){ ul.innerHTML = hist.length || !$('#hstatus').textContent ? `<li><span class="note">${esc(t('empty'))}</span></li>` : ''; return; }
   ul.innerHTML = rows.map(it=>`<li>
     <div class="hi"><b>${esc(histLabel(it))}</b>
-      <span>${esc(it.namn)} · ${esc(it.rum)}${it.avd ? ' · ' + esc(it.avd) : ''}${it.usr ? ' · @' + esc(it.usr) : ''}</span></div>
+      <span>${esc([it.namn, it.rum, it.avd, it.usr ? '@' + it.usr : ''].filter(Boolean).join(' · '))}</span></div>
     <button type="button" class="btn sm" data-id="${esc(it.id)}">${esc(t('openBtn'))}</button></li>`).join('');
 }
 function loadHistory(){
@@ -1250,8 +1252,8 @@ function isBusy(){
   return false;
 }
 function goTo(url){ location.replace(url); }
-function setVerMsg(msg, isErr){
-  ['#verMsg','#verMsg2'].forEach(sel=>{ const el = $(sel); if(el){ el.textContent = msg; el.style.color = isErr ? '' : ''; } });
+function setVerMsg(msg){
+  ['#verMsg','#verMsg2'].forEach(sel=>{ const el = $(sel); if(el) el.textContent = msg; });
 }
 function renderVer(){
   const outdated = !!serverVersion && serverVersion !== EXPECTED_SERVER;
@@ -1274,7 +1276,7 @@ function applyUpdate(){
   if(!pendingVersion) return;
   if(new URLSearchParams(location.search).get('v') === pendingVersion){
     // ya se intentó con esta versión y el servidor aún entrega la anterior: no entrar en bucle
-    setVerMsg(t('updWait'), true);
+    setVerMsg(t('updWait'));
     return;
   }
   const u = new URL(location.href);
@@ -1293,7 +1295,7 @@ function checkUpdate(manual){
       pendingVersion = ''; $('#updbar').hidden = true;
       if(manual) setVerMsg(t('verOk'));
     }
-  }).catch(()=>{ if(manual) setVerMsg(t('offline'), true); });
+  }).catch(()=>{ if(manual) setVerMsg(t('offline')); });
 }
 function checkServer(){
   if(!apiUrl()) return;
